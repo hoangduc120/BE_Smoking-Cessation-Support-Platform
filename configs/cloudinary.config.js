@@ -12,7 +12,7 @@ const storage = new CloudinaryStorage({
     cloudinary,
     allowedFormats: ['jpg', 'png'],
     params: {
-        folder: 'GreenBridge',
+        folder: 'QuitSmoke',
         transformation: [{ width: 500, height: 500, crop: 'limit' }]
     }
 });
