@@ -2,9 +2,23 @@ const mongoose = require('mongoose'); // Erase if already required
 
 // Declare the Schema of the Mongo model
 var blogSchema = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+    },
     title: {
         type: String,
-        default: null,
+        required: true,
+    },
+    slug: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    description: {
+        type: String,
+        required: true,
     },
     image: [{
         type: String,
@@ -19,8 +33,7 @@ var blogSchema = new mongoose.Schema({
         ref: "Comment",
     }],
     tags: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        type: String,
     }],
     isDeleted: {
         type: Boolean,

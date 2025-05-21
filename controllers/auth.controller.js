@@ -40,9 +40,9 @@ const clearAuthCookies = (res) => {
 
 class AuthController {
     register = catchAsync(async (req, res) => {
-        const { email, password, confirmPassword } = req.body;
+        const { email, password, confirmPassword, userName } = req.body;
 
-        if (!email || !password || !confirmPassword) {
+        if (!email || !password || !confirmPassword || !userName) {
             return BAD_REQUEST(res, 'Missing required fields');
         }
 
@@ -55,7 +55,7 @@ class AuthController {
             return BAD_REQUEST(res, 'Email already exists');
         }
 
-        await authService.register(email, password);
+        await authService.register(email, password, userName);
         return CREATED(res, 'Register successful');
     });
 

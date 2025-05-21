@@ -58,9 +58,9 @@ class AuthService {
         process.env.JWT_SECRET,
         { expiresIn: '1h' }
       );
-      
+
       const newRefreshToken = jwt.sign(
-        { id: user._id},
+        { id: user._id },
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: '7d' }
       );
@@ -74,10 +74,11 @@ class AuthService {
       });
     }
   }
-  async register(email, password) {
+  async register(email, password, userName) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({
       email,
+      userName,
       password: hashedPassword,
       gender: 'other',
       yob: null,
