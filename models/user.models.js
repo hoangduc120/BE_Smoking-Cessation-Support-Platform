@@ -6,6 +6,7 @@ var userSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
+        index: true,
     },
     email: {
         type: String,
@@ -19,7 +20,7 @@ var userSchema = new mongoose.Schema({
     googleId: {
         type: String,
         default: null,
-      },
+    },
     role: {
         type: String,
         required: true,
