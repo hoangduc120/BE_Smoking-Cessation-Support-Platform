@@ -25,7 +25,7 @@ class UserService {
     // Cập nhật thông tin nếu được cung cấp
     if (gender) user.gender = gender;
     if (yob) user.dateOfBirth = new Date(yob);
-    if (userName) user.userName = userName;
+    if (userName) user.name = userName;
     if (profilePicture) user.profilePicture = profilePicture;
     if (bio) user.bio = bio;
 

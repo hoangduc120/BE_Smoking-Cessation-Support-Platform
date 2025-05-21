@@ -28,8 +28,19 @@ const authMiddleware = async (req, res, next) => {
   try {
     const accessTokenDecoded = await verifyToken(accessToken, process.env.JWT_SECRET);
     req.jwtDecoded = accessTokenDecoded;
-    req.id = accessTokenDecoded.userId || accessTokenDecoded.id;
+    const userId = accessTokenDecoded.userId || accessTokenDecoded.id;
+    req.id = userId;
     req.role = accessTokenDecoded.role;
+
+    // Lấy thông tin user từ database và gán vào req.user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        message: 'User associated with this token no longer exists',
+      });
+    }
+    req.user = user;
+
     next();
   } catch (error) {
     console.error('Token verification failed:', error);
