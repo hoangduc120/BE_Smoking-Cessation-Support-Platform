@@ -7,6 +7,7 @@ const connectDB = require("./configs/connectDB.config");
 const passport = require("./configs/passport.config");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
+
 const app = express();
 
 app.use(express.json());
@@ -15,7 +16,7 @@ app.use(cookieParser()); // Must be before CORS and routes
 
 // CORS configuration
 const corsOptions = {
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     optionsSuccessStatus: 204,
     allowedHeaders: ["Authorization", "Content-Type"],
@@ -60,18 +61,4 @@ app.use((err, req, res, next) => {
     });
 });
 
-const PORT = process.env.PORT || 5000;
-
-const startServer = async () => {
-    try {
-        await connectDB();
-        app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
-        });
-    } catch (error) {
-        console.error("Failed to start server:", error);
-        process.exit(1);
-    }
-};
-
-startServer();
+module.exports = app;

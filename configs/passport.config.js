@@ -12,7 +12,7 @@ passport.use(new GoogleStrategy({
 }, async (accessToken, refreshToken, profile, done) => {
     try {
         let user = await User.findOne({ email: profile.emails[0].value });
-        const passwordBrcypt = await bcrypt.hash("B@o03122003", 10);
+        const passwordBrcypt = await bcrypt.hash("kudokun@123", 10);
         if (user) {
             if (!user.googleId) {
                 user.googleId = profile.id;
@@ -23,6 +23,7 @@ passport.use(new GoogleStrategy({
             user = new User({
                 googleId: profile.id,
                 email: profile.emails[0].value,
+                userName: profile.displayName || profile.emails[0].value.split('@')[0],
                 role: 'user',
                 password: passwordBrcypt,
                 gender: profile._json.gender || 'other',
