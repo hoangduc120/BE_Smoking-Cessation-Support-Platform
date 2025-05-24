@@ -7,6 +7,7 @@ const connectDB = require("./configs/connectDB.config");
 const passport = require("./configs/passport.config");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
+const { swaggerUi, swaggerSpec } = require("./configs/swagger"); // 🆕 Thêm swagger
 
 const app = express();
 
@@ -35,6 +36,9 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Swagger UI route
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // 🆕 Thêm swagger route
 
 // Routes
 const appRoutes = require("./router/appRoutes");
