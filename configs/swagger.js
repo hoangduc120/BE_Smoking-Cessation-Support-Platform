@@ -14,14 +14,32 @@ const options = {
         url: 'http://localhost:5000',
         description: 'Development server',
       },
+      {
+        url: 'https://be-smoking-cessation-support-platform.onrender.com',
+        description: 'Production server',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
     ],
   },
-  apis: ['./router/*.js'], // <-- đường dẫn tới file router có comment Swagger
+  apis: ['./router/*.js'], // đường dẫn đến các route chứa comment Swagger
 };
 
 const swaggerSpec = swaggerJSDoc(options);
 
 module.exports = {
   swaggerUi,
-  swaggerSpec
+  swaggerSpec,
 };
