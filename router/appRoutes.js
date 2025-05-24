@@ -4,6 +4,8 @@ const router = express.Router();
 const authRoute = require("./auth.route");
 const blogRoute = require("./blog.route");
 const userRoute = require("./user.route");
+const quitPlanRoute = require("./quitPlan.route");
+const badgeRoute = require("./badge.route");
 
 const routes = [
   {
@@ -18,6 +20,14 @@ const routes = [
     path: "/users",
     route: userRoute,
   },
+  {
+    path: "/plans",
+    route: quitPlanRoute,
+  },
+  {
+    path: "/badges",
+    route: badgeRoute,
+  }
 ];
 
 routes.forEach((route) => {
