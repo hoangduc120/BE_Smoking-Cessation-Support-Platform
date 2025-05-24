@@ -51,6 +51,14 @@ var userSchema = new mongoose.Schema({
         type: String,
         default: null,
     },
+    phone: {
+        type: String,
+        default: null,
+    },
+    address: {
+        type: String,
+        default: null,
+    },
     followers: {
         type: [mongoose.Schema.Types.ObjectId],
         ref: "User",

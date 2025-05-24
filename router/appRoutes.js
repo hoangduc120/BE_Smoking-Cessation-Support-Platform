@@ -3,7 +3,7 @@ const router = express.Router();
 
 const authRoute = require("./auth.route");
 const blogRoute = require("./blog.route");
-
+const userRoute = require("./user.route");
 
 const routes = [
   {
@@ -13,6 +13,10 @@ const routes = [
   {
     path: "/blogs",
     route: blogRoute,
+  },
+  {
+    path: "/users",
+    route: userRoute,
   },
 ];
 
