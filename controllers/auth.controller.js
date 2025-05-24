@@ -35,7 +35,6 @@ const clearAuthCookies = (res) => {
         sameSite: 'Strict',
         path: '/',
     });
-
 };
 
 class AuthController {
@@ -95,6 +94,40 @@ class AuthController {
             const { newAccessToken, newRefreshToken } = await authService.refreshToken(refreshToken);
             setAuthCookies(res, newAccessToken, newRefreshToken);
             return OK(res, 'Token refreshed', { accessToken: newAccessToken });
+        } catch (error) {
+            return BAD_REQUEST(res, error.message);
+        }
+    });
+
+    forgotPassword = catchAsync(async (req, res) => {
+        const { email } = req.query;
+
+        if (!email) {
+            return BAD_REQUEST(res, 'Email is required');
+        }
+
+        try {
+            const result = await authService.forgotPassword(email);
+            return OK(res, result.message, {
+                success: result.success,
+                // Không trả về resetToken trong production
+                ...(process.env.NODE_ENV === 'development' && { resetToken: result.resetToken })
+            });
+        } catch (error) {
+            return BAD_REQUEST(res, error.message);
+        }
+    });
+
+    resetPassword = catchAsync(async (req, res) => {
+        const { password, token } = req.body;
+
+        if (!token || !password) {
+            return BAD_REQUEST(res, 'Token and password are required');
+        }
+
+        try {
+            const result = await authService.resetPassword(token, password);
+            return OK(res, result.message, result);
         } catch (error) {
             return BAD_REQUEST(res, error.message);
         }

@@ -1,9 +1,11 @@
 const User = require('../models/user.models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { StatusCodes } = require('http-status-codes');
 const ErrorWithStatus = require('../utils/errorWithStatus');
-
+const sendMail = require('../utils/sendMail');
+const asyncHandler = require('express-async-handler');
 class AuthService {
   async login(email, password) {
     const user = await User.findOne({ email });
@@ -85,6 +87,90 @@ class AuthService {
       role: 'user',
     });
     return await newUser.save();
+  }
+
+  async forgotPassword(email) {
+    if (!email) {
+      throw new ErrorWithStatus({
+        status: StatusCodes.BAD_REQUEST,
+        message: "Missing email input"
+      });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new ErrorWithStatus({
+        status: StatusCodes.NOT_FOUND,
+        message: "User not found"
+      });
+    }
+
+    const resetToken = await user.createPasswordChangedToken();
+    await user.save();
+
+    console.log('Reset Token:', resetToken);
+
+    const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Xin chào ${user.userName}!</h2>
+            <h3>Đây là link thay đổi mật khẩu của bạn</h3>
+            <p>Bạn đã yêu cầu reset mật khẩu. Click vào link bên dưới để đặt lại mật khẩu:</p>
+            <a href="${process.env.URL_SERVER}/auth/reset-password/${resetToken}" 
+               style="background-color: #4CAF50; color: white; padding: 14px 25px; text-align: center; text-decoration: none; display: inline-block; border-radius: 4px;">
+               Đặt lại mật khẩu
+            </a>
+            <p><strong>Lưu ý:</strong> Link này sẽ hết hạn sau 30 phút.</p>
+            <p>Nếu bạn không yêu cầu reset mật khẩu, vui lòng bỏ qua email này.</p>
+        </div>`;
+
+    const data = {
+      email,
+      html,
+    };
+
+    const rs = await sendMail(data);
+    return {
+      success: true,
+      message: "Reset password email sent successfully",
+      rs,
+      resetToken // Chỉ để test, trong production nên remove
+    };
+  }
+
+  async resetPassword(token, password) {
+    if (!token || !password) {
+      throw new ErrorWithStatus({
+        status: StatusCodes.BAD_REQUEST,
+        message: "Missing token or password"
+      });
+    }
+
+    const passwordResetToken = crypto.createHash("sha256").update(token).digest("hex");
+    const user = await User.findOne({
+      passwordResetToken,
+      passwordResetExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      throw new ErrorWithStatus({
+        status: StatusCodes.BAD_REQUEST,
+        message: "Invalid or expired reset token"
+      });
+    }
+
+    // Hash password mới
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user.password = hashedPassword;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    user.passwordChangeAt = Date.now();
+    await user.save();
+
+    return {
+      success: true,
+      message: "Password reset successful"
+    };
   }
 }
 
