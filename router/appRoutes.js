@@ -3,8 +3,9 @@ const router = express.Router();
 
 const authRoute = require("./auth.route");
 const blogRoute = require("./blog.route");
-const quitPlanRoute = require("./quitPlan.route"); // 🆕 thêm dòng này
-const badgeRoute = require("./badge.route");       // 🆕 nếu có route xem huy hiệu
+const userRoute = require("./user.route");
+const quitPlanRoute = require("./quitPlan.route");
+const badgeRoute = require("./badge.route");
 
 const routes = [
   {
@@ -16,11 +17,15 @@ const routes = [
     route: blogRoute,
   },
   {
-    path: "/plans",         // 🆕 route kế hoạch bỏ thuốc
+    path: "/users",
+    route: userRoute,
+  },
+  {
+    path: "/plans",
     route: quitPlanRoute,
   },
   {
-    path: "/badges",        // 🆕 route để xem danh sách huy hiệu người dùng (nếu có)
+    path: "/badges",
     route: badgeRoute,
   }
 ];

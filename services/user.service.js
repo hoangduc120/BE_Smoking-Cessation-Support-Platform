@@ -14,7 +14,7 @@ class UserService {
     return await User.find().select('-password -refreshToken');
   }
 
-  async updateInfo(userId, { gender, yob, userName, profilePicture, bio }) {
+  async updateInfo(userId, { gender, yob, userName, profilePicture, bio, phone, address, email }) {
     const user = await User.findById(userId);
     if (!user) {
       throw new ErrorWithStatus({
@@ -26,9 +26,12 @@ class UserService {
     // Cập nhật thông tin nếu được cung cấp
     if (gender) user.gender = gender;
     if (yob) user.dateOfBirth = new Date(yob);
-    if (userName) user.name = userName;
+    if (userName) user.userName = userName;
     if (profilePicture) user.profilePicture = profilePicture;
     if (bio) user.bio = bio;
+    if (phone) user.phone = phone;
+    if (address) user.address = address;
+    if (email) user.email = email;
 
     await user.save();
     const { password, refreshToken, ...userWithoutSensitiveInfo } = user.toObject();
