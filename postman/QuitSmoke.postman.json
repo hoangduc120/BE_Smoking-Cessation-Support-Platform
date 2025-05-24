@@ -16,7 +16,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"email\": \"hoangduc@gmail.com\",\r\n    \"password\": \"Dd12345678@c\"\r\n}",
+							"raw": "{\r\n    \"email\": \"hoangduc05122003@gmail.com\",\r\n    \"password\": \"1234567\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -45,7 +45,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"userName\": \"coach\",\r\n    \"email\": \"coach@gmail.com\",\r\n    \"password\": \"123456\",\r\n    \"confirmPassword\": \"123456\"\r\n}",
+							"raw": "{\r\n    \"userName\": \"HoangDucVipPro\",\r\n    \"email\": \"hoangduc05122003@gmail.com\",\r\n    \"password\": \"123456\",\r\n    \"confirmPassword\": \"123456\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -93,7 +93,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:5000/auth/forgot-password",
+							"raw": "http://localhost:5000/auth/forgot-password?email=hoangduc05122003@gmail.com",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -102,6 +102,12 @@
 							"path": [
 								"auth",
 								"forgot-password"
+							],
+							"query": [
+								{
+									"key": "email",
+									"value": "hoangduc05122003@gmail.com"
+								}
 							]
 						}
 					},
@@ -111,7 +117,40 @@
 					"name": "Reset Password",
 					"request": {
 						"method": "PUT",
-						"header": []
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "   {\r\n     \"token\": \"5b74a3e7407301e098079e47587dd0a3a3fe9c7a4e73c48b5a648b1fb02650d1\",\r\n     \"password\": \"123456\"\r\n   }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/auth/reset-password",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"auth",
+								"reset-password"
+							],
+							"query": [
+								{
+									"key": "password",
+									"value": "1234567",
+									"disabled": true
+								},
+								{
+									"key": "token",
+									"value": "0b2d0fe53a0a602617bfb11efc9fca17637380d7935e69c2f70217c1de87e217",
+									"disabled": true
+								}
+							]
+						}
 					},
 					"response": []
 				}
