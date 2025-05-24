@@ -13,7 +13,10 @@ var smokingStatusSchema = new mongoose.Schema({
     },
     smokingPrice: {
         type: Number,
-    }    
+    },
+    mainReason:{
+        type: String,
+    }
 }, { timestamps: true });
 
 //Export the model

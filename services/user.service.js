@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const ErrorWithStatus = require("../utils/errorWithStatus");
 const { StatusCodes } = require("http-status-codes");
 const { generateToken } = require("../middlewares/jwt");
+const asyncHandler = require("express-async-handler");
 
 class UserService {
   async getUserById(id) {
@@ -226,6 +227,7 @@ class UserService {
 
     return { message: "User unfollowed successfully" };
   }
+
 }
 
 module.exports = new UserService();

@@ -7,6 +7,7 @@ const authController = require("../controllers/auth.controller");
 const { generateToken } = require("../middlewares/jwt");
 const { OK } = require("../configs/response.config");
 
+
 router.post("/login", authController.login);
 router.post("/register", authController.register);
 router.post("/logout", authMiddleware, authController.logout);
@@ -48,4 +49,6 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
   return res.redirect(`http://localhost:5173?accessToken=${accessToken}`);
 });
 
+router.get('/forgot-password', authController.forgotPassword)
+router.put('/reset-password', authController.resetPassword)
 module.exports = router;
