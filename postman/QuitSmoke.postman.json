@@ -16,7 +16,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"email\": \"hoangduc05122003@gmail.com\",\r\n    \"password\": \"1234567\"\r\n}",
+							"raw": "{\r\n    \"email\": \"hoangduc05122003@gmail.com\",\r\n    \"password\": \"123456\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -45,7 +45,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"userName\": \"HoangDucVipPro\",\r\n    \"email\": \"hoangduc05122003@gmail.com\",\r\n    \"password\": \"123456\",\r\n    \"confirmPassword\": \"123456\"\r\n}",
+							"raw": "{\r\n    \"userName\": \"HoangDuc\",\r\n    \"email\": \"hoangduc@gmail.com\",\r\n    \"password\": \"123456\",\r\n    \"confirmPassword\": \"123456\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -209,7 +209,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MmUwZDBhNDE5ZTc4YTk0MTk3ZDc5OCIsImVtYWlsIjoiaG9hbmdkdWNAZ21haWwuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzQ3ODUzMjEzLCJleHAiOjE3NDc4NTY4MTN9.4V5yEFgegqoQxgq-JaQFg8EI49Bn2rmhfyZzb_wfjUc",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgxNjY2NTUsImV4cCI6MTc0ODE3MDI1NX0.H8xFo29LCquWc7QfUlElQE3nkFNxcuFRTNmGJXqPZM4",
 									"type": "string"
 								}
 							]
@@ -218,7 +218,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n  \"title\": \"My New Blog saadasd\",\r\n  \"content\": \"Nội dung blogsadasd\",\r\n  \"description\": \"Mô tả ngắn về blog\",\r\n  \"tags\": [\"cai thuốc lá\", \"sức khỏe\"]\r\n}",
+							"raw": "{\r\n  \"title\": \"My New Blog 3\",\r\n  \"content\": \"Nội dung blog 3\",\r\n  \"description\": \"Mô tả ngắn về blog\",\r\n  \"tags\": [\"cai thuốc lá\", \"sức khỏe\"]\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -245,7 +245,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:5000/blogs/my-new-blog-1747853406775",
+							"raw": "http://localhost:5000/blogs/my-new-blog-3-1748166911611",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -253,7 +253,7 @@
 							"port": "5000",
 							"path": [
 								"blogs",
-								"my-new-blog-1747853406775"
+								"my-new-blog-3-1748166911611"
 							]
 						}
 					},
@@ -284,7 +284,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5000/blogs/682e205e233271d9fac29758",
+							"raw": "http://localhost:5000/blogs/6832e8ffff774329a9c11a77",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -292,7 +292,7 @@
 							"port": "5000",
 							"path": [
 								"blogs",
-								"682e205e233271d9fac29758"
+								"6832e8ffff774329a9c11a77"
 							]
 						}
 					},
@@ -348,7 +348,7 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:5000/blogs/682e205e233271d9fac29758/like",
+							"raw": "http://localhost:5000/blogs/6832e8ffff774329a9c11a77/like",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -356,7 +356,7 @@
 							"port": "5000",
 							"path": [
 								"blogs",
-								"682e205e233271d9fac29758",
+								"6832e8ffff774329a9c11a77",
 								"like"
 							]
 						}
@@ -388,7 +388,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5000/blogs/682e205e233271d9fac29758/comment",
+							"raw": "http://localhost:5000/blogs/6832e8ffff774329a9c11a77/comment",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -396,7 +396,7 @@
 							"port": "5000",
 							"path": [
 								"blogs",
-								"682e205e233271d9fac29758",
+								"6832e8ffff774329a9c11a77",
 								"comment"
 							]
 						}
@@ -419,7 +419,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzE2MDk5MWMwOThhNjdlODRjYzlkNSIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgwOTQ1MzAsImV4cCI6MTc0ODA5ODEzMH0.FBK7ess5kvYQzWEEhq9PXMiqXphqTqrCV0IYqA8LBL8",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgxNjY2NTUsImV4cCI6MTc0ODE3MDI1NX0.H8xFo29LCquWc7QfUlElQE3nkFNxcuFRTNmGJXqPZM4",
 									"type": "string"
 								}
 							]
@@ -537,7 +537,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n  \"gender\": \"male\",\r\n  \"yob\": \"2003\",\r\n  \"userName\": \"HoangDucVipPro\",\r\n  \"bio\": \"Đây là bio mới của tôi\"\r\n}",
+							"raw": "{\r\n  \"gender\": \"male\",\r\n  \"yob\": \"2003\",\r\n  \"userName\": \"HoangDucVipPro\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -595,7 +595,7 @@
 							"variable": [
 								{
 									"key": "id",
-									"value": "6830952be2c1210438f06d9b"
+									"value": "683160991c098a67e84cc9d5"
 								}
 							]
 						}
@@ -603,12 +603,12 @@
 					"response": []
 				},
 				{
-					"name": "Follw",
+					"name": "Follow",
 					"request": {
-						"method": "PUT",
+						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:5000/users/follow/:id",
+							"raw": "http://localhost:5000/users/followers/:id",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -616,13 +616,13 @@
 							"port": "5000",
 							"path": [
 								"users",
-								"follow",
+								"followers",
 								":id"
 							],
 							"variable": [
 								{
 									"key": "id",
-									"value": "682e0d0a419e78a94197d798"
+									"value": "6832e7dbff774329a9c11a52"
 								}
 							]
 						}
@@ -646,7 +646,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n  \"currentPassword\": \"123456\",\r\n  \"newPassword\": \"1234567\",\r\n  \"confirmNewPassword\": \"1234567\"\r\n}",
+							"raw": "{\r\n  \"currentPassword\": \"1234567\",\r\n  \"newPassword\": \"123456\",\r\n  \"confirmNewPassword\": \"123456\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -663,6 +663,135 @@
 							"path": [
 								"users",
 								"change-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpLoad Avatar",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgxNjY2NTUsImV4cCI6MTc0ODE3MDI1NX0.H8xFo29LCquWc7QfUlElQE3nkFNxcuFRTNmGJXqPZM4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "avatar",
+									"type": "file",
+									"src": "/D:/nghich ngom/images.jpeg"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:5000/users/upload-avatar",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"users",
+								"upload-avatar"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UnFollow",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgxNjY2NTUsImV4cCI6MTc0ODE3MDI1NX0.H8xFo29LCquWc7QfUlElQE3nkFNxcuFRTNmGJXqPZM4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"gender\": \"male\",\r\n  \"yob\": \"2003\",\r\n  \"userName\": \"HoangDucVipPro\",\r\n  \"bio\": \"Đây là bio mới của tôi\"\r\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/users/follow/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"users",
+								"follow",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "6832e7dbff774329a9c11a52"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Chat",
+			"item": [
+				{
+					"name": "Ger",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgxNjY2NTUsImV4cCI6MTc0ODE3MDI1NX0.H8xFo29LCquWc7QfUlElQE3nkFNxcuFRTNmGJXqPZM4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "avatar",
+									"type": "file",
+									"src": "/D:/nghich ngom/445660797_946489827208278_1035207323269048589_n.jpg"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:5000/chat/users",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"chat",
+								"users"
 							]
 						}
 					},
