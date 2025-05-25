@@ -182,14 +182,38 @@ class UserService {
     }
   }
 
-  async uploadAvatar(userId, profilePicture) {
+  async uploadAvatar(userId, fileInfo) {
     try {
       const user = await User.findById(userId);
       if (!user || !user.isActive || user.isDeleted) {
         throw new Error('User not found or inactive');
       }
 
-      const uploadResult = await cloudinary.uploader.upload(profilePicture, {
+      // fileInfo đã được Multer + CloudinaryStorage upload rồi
+      // Chỉ cần lấy URL từ file.path (Cloudinary URL)
+      const imageUrl = fileInfo.path; // Cloudinary URL từ multer
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: { profilePicture: imageUrl } },
+        { new: true, runValidators: true }
+      ).select('userName email profilePicture role');
+
+      return updatedUser;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async uploadAvatarManual(userId, imageData) {
+    try {
+      const user = await User.findById(userId);
+      if (!user || !user.isActive || user.isDeleted) {
+        throw new Error('User not found or inactive');
+      }
+
+      // Upload trực tiếp lên Cloudinary (cho base64 hoặc buffer)
+      const uploadResult = await cloudinary.uploader.upload(imageData, {
         folder: 'QuitSmoke',
         transformation: [{ width: 500, height: 500, crop: 'limit' }],
       });

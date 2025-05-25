@@ -161,7 +161,24 @@ class UserController {
     }
 
     try {
-      const updatedUser = await userService.uploadAvatar(userId, req.file.path);
+      const updatedUser = await userService.uploadAvatar(userId, req.file);
+      return OK(res, "Avatar uploaded successfully", { user: updatedUser });
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  });
+
+  // Upload avatar manual (base64/buffer)
+  uploadAvatarManual = catchAsync(async (req, res) => {
+    const userId = req.id;
+    const { imageData } = req.body;
+
+    if (!imageData) {
+      return BAD_REQUEST(res, "Image data is required");
+    }
+
+    try {
+      const updatedUser = await userService.uploadAvatarManual(userId, imageData);
       return OK(res, "Avatar uploaded successfully", { user: updatedUser });
     } catch (error) {
       return BAD_REQUEST(res, error.message);

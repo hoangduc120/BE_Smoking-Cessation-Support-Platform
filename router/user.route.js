@@ -24,6 +24,7 @@ router.put("/change-password", authMiddleware, userController.changePassword);
 // Avatar routes
 router.put("/update-avatar", authMiddleware, userController.updateAvatar);
 router.put("/upload-avatar", authMiddleware, uploadCloud.single('avatar'), userController.uploadAvatar);
+router.put("/upload-avatar-manual", authMiddleware, userController.uploadAvatarManual);
 
 // Follow/Unfollow routes
 router.put("/follow/:id", authMiddleware, userController.followUser);
