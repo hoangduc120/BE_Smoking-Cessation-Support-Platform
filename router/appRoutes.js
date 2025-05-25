@@ -6,6 +6,7 @@ const blogRoute = require("./blog.route");
 const userRoute = require("./user.route");
 const quitPlanRoute = require("./quitPlan.route");
 const badgeRoute = require("./badge.route");
+const chatRoute = require("./chatmessage.route");
 
 const routes = [
   {
@@ -27,7 +28,11 @@ const routes = [
   {
     path: "/badges",
     route: badgeRoute,
-  }
+  },
+  {
+    path: "/chat",
+    route: chatRoute,
+  },
 ];
 
 routes.forEach((route) => {
