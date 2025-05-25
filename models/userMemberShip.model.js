@@ -1,0 +1,31 @@
+const mongoose = require('mongoose'); // Erase if already required
+
+// Declare the Schema of the Mongo model
+var userMemberShipSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    },
+    memberShipPlanId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'MemberShipPlan',
+        required: true,
+    },
+    startDate: {
+        type: Date,
+        required: true,
+    },
+    endDate: {
+        type: Date,
+        required: true,
+    },
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'paid', 'failed'],
+        default: 'pending',
+    },
+}, { timestamps: true });
+
+//Export the model
+module.exports = mongoose.model('UserMemberShip', userMemberShipSchema);

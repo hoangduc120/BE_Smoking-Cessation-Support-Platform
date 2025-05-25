@@ -2,30 +2,31 @@ const mongoose = require('mongoose'); // Erase if already required
 
 // Declare the Schema of the Mongo model
 var notificationSchema = new mongoose.Schema({
-    recipient: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true,
-        index: true,
     },
-    sender: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-        index: true,
-    },
-    type: {
+    title: {
         type: String,
-        enum: ["like", "comment", "follow", "approve"],
         required: true,
-    },
-    read: {
-        type: Boolean,
-        default: false,
-        index: true,
     },
     message: {
         type: String,
+        required: true,
+    },
+    type: {
+        type: String,
+        enum: ["email", "push"],
+        required: true,
+    },
+    sentAt: {
+        type: Date,
+        default: Date.now,
+    },
+    status: {
+        type: String,
+        enum: ["sent", "failed"],
         required: true,
     }
 }, { timestamps: true });
