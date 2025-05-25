@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const ErrorWithStatus = require("../utils/errorWithStatus");
 const { StatusCodes } = require("http-status-codes");
 const { generateToken } = require("../middlewares/jwt");
-const asyncHandler = require("express-async-handler");
+const { cloudinary } = require("../configs/cloudinary.config");
 
 class UserService {
   async getUserById(id) {
@@ -23,7 +23,28 @@ class UserService {
       });
     }
 
-    // Cập nhật thông tin nếu được cung cấp
+    if (userName && userName !== user.userName) {
+      const existingUserName = await User.findOne({ userName, _id: { $ne: userId } });
+      if (existingUserName) {
+        throw new ErrorWithStatus({
+          status: StatusCodes.BAD_REQUEST,
+          message: "Username is already taken",
+        });
+      }
+    }
+
+
+    if (email && email !== user.email) {
+      const existingEmail = await User.findOne({ email, _id: { $ne: userId } });
+      if (existingEmail) {
+        throw new ErrorWithStatus({
+          status: StatusCodes.BAD_REQUEST,
+          message: "Email is already taken",
+        });
+      }
+    }
+
+
     if (gender) user.gender = gender;
     if (yob) user.dateOfBirth = new Date(yob);
     if (userName) user.userName = userName;
@@ -142,95 +163,142 @@ class UserService {
     }
   }
 
-  async updateAvatar(userId, imageUrl) {
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new ErrorWithStatus({
-        status: StatusCodes.NOT_FOUND,
-        message: "User not found",
-      });
+  async updateAvatar(userId, profilePictureUrl) {
+    try {
+      const user = await User.findById(userId);
+      if (!user || !user.isActive || user.isDeleted) {
+        throw new Error('User not found or inactive');
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: { profilePicture: profilePictureUrl } },
+        { new: true, runValidators: true }
+      ).select('userName email profilePicture role');
+
+      return updatedUser;
+    } catch (error) {
+      throw new Error(error.message);
     }
-
-    user.profilePicture = imageUrl;
-    await user.save();
-
-    return { profilePicture: user.profilePicture };
   }
 
-  async followUser(userId, followId) {
-    if (userId === followId) {
-      throw new ErrorWithStatus({
-        status: StatusCodes.BAD_REQUEST,
-        message: "You cannot follow yourself",
-      });
+  async uploadAvatar(userId, fileInfo) {
+    try {
+      const user = await User.findById(userId);
+      if (!user || !user.isActive || user.isDeleted) {
+        throw new Error('User not found or inactive');
+      }
+
+      // fileInfo đã được Multer + CloudinaryStorage upload rồi
+      // Chỉ cần lấy URL từ file.path (Cloudinary URL)
+      const imageUrl = fileInfo.path; // Cloudinary URL từ multer
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: { profilePicture: imageUrl } },
+        { new: true, runValidators: true }
+      ).select('userName email profilePicture role');
+
+      return updatedUser;
+    } catch (error) {
+      throw new Error(error.message);
     }
-
-    const [user, followUser] = await Promise.all([
-      User.findById(userId),
-      User.findById(followId)
-    ]);
-
-    if (!user || !followUser) {
-      throw new ErrorWithStatus({
-        status: StatusCodes.NOT_FOUND,
-        message: "User not found",
-      });
-    }
-
-    // Kiểm tra xem đã follow hay chưa
-    if (user.following.includes(followId)) {
-      throw new ErrorWithStatus({
-        status: StatusCodes.BAD_REQUEST,
-        message: "You are already following this user",
-      });
-    }
-
-    // Thêm vào danh sách following và followers
-    user.following.push(followId);
-    followUser.followers.push(userId);
-
-    await Promise.all([user.save(), followUser.save()]);
-
-    return { message: "User followed successfully" };
   }
 
-  async unfollowUser(userId, unfollowId) {
-    if (userId === unfollowId) {
-      throw new ErrorWithStatus({
-        status: StatusCodes.BAD_REQUEST,
-        message: "You cannot unfollow yourself",
+  async uploadAvatarManual(userId, imageData) {
+    try {
+      const user = await User.findById(userId);
+      if (!user || !user.isActive || user.isDeleted) {
+        throw new Error('User not found or inactive');
+      }
+
+      // Upload trực tiếp lên Cloudinary (cho base64 hoặc buffer)
+      const uploadResult = await cloudinary.uploader.upload(imageData, {
+        folder: 'QuitSmoke',
+        transformation: [{ width: 500, height: 500, crop: 'limit' }],
       });
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: { profilePicture: uploadResult.secure_url } },
+        { new: true, runValidators: true }
+      ).select('userName email profilePicture role');
+
+      return updatedUser;
+    } catch (error) {
+      throw new Error(error.message);
     }
-
-    const [user, unfollowUser] = await Promise.all([
-      User.findById(userId),
-      User.findById(unfollowId)
-    ]);
-
-    if (!user || !unfollowUser) {
-      throw new ErrorWithStatus({
-        status: StatusCodes.NOT_FOUND,
-        message: "User not found",
-      });
-    }
-
-    // Kiểm tra xem có đang follow hay không
-    if (!user.following.includes(unfollowId)) {
-      throw new ErrorWithStatus({
-        status: StatusCodes.BAD_REQUEST,
-        message: "You are not following this user",
-      });
-    }
-
-    // Xóa khỏi danh sách following và followers
-    user.following = user.following.filter(id => id.toString() !== unfollowId);
-    unfollowUser.followers = unfollowUser.followers.filter(id => id.toString() !== userId);
-
-    await Promise.all([user.save(), unfollowUser.save()]);
-
-    return { message: "User unfollowed successfully" };
   }
 
+  async getUserStats(userId) {
+    try {
+      const Follow = require("../models/follow.model");
+
+      const user = await User.findById(userId).select('-password -refreshToken');
+      if (!user || !user.isActive || user.isDeleted) {
+        throw new Error('User not found or inactive');
+      }
+
+      // Đếm số followers
+      const followersCount = await Follow.countDocuments({
+        followed: userId,
+        status: 'active'
+      });
+
+      // Đếm số following
+      const followingCount = await Follow.countDocuments({
+        following: userId,
+        status: 'active'
+      });
+
+      return {
+        user,
+        stats: {
+          followersCount,
+          followingCount
+        }
+      };
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async searchUsers(searchQuery, currentUserId, page = 1, limit = 10) {
+    try {
+      const skip = (page - 1) * limit;
+
+      const searchFilter = {
+        isActive: true,
+        isDeleted: false,
+        _id: { $ne: currentUserId }, // Exclude current user
+        $or: [
+          { userName: { $regex: searchQuery, $options: 'i' } },
+          { email: { $regex: searchQuery, $options: 'i' } }
+        ]
+      };
+
+      const users = await User.find(searchFilter)
+        .select('userName email profilePicture role')
+        .skip(skip)
+        .limit(limit)
+        .sort({ userName: 1 });
+
+      const totalUsers = await User.countDocuments(searchFilter);
+
+      return {
+        users,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(totalUsers / limit),
+          totalUsers,
+          hasNextPage: page < Math.ceil(totalUsers / limit),
+          hasPrevPage: page > 1
+        }
+      };
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
 }
 
 module.exports = new UserService();

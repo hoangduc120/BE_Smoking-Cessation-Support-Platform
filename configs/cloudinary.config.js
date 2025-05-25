@@ -10,7 +10,7 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
     cloudinary,
-    allowedFormats: ['jpg', 'png'],
+    allowed_formats: ['jpg', 'png', 'jpeg'],
     params: {
         folder: 'QuitSmoke',
         transformation: [{ width: 500, height: 500, crop: 'limit' }]
@@ -19,4 +19,8 @@ const storage = new CloudinaryStorage({
 
 const uploadCloud = multer({ storage });
 
-module.exports = uploadCloud;
+// Export both cloudinary instance and multer upload
+module.exports = {
+    cloudinary,
+    uploadCloud
+};

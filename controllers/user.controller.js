@@ -2,8 +2,9 @@ const catchAsync = require("../utils/catchAsync");
 const userService = require("../services/user.service");
 const { OK, BAD_REQUEST, CREATED } = require("../configs/response.config");
 const passport = require("passport");
-const cloudinary = require("../configs/cloudinary.config");
+const { cloudinary } = require("../configs/cloudinary.config");
 const User = require("../models/user.models");
+const followService = require("../services/follow.service");
 
 class UserController {
   getAllUser = catchAsync(async (req, res) => {
@@ -15,18 +16,6 @@ class UserController {
     const userId = req.params.id;
     const user = await userService.getUserById(userId);
     return OK(res, "Get user by id successfully", { user });
-  });
-
-  updateInfo = catchAsync(async (req, res) => {
-    const { gender, yob, userName, bio } = req.body;
-    const userId = req.id;
-
-    if (!gender || !yob) {
-      return BAD_REQUEST(res, "Missing required fields");
-    }
-
-    const user = await userService.updateInfo(userId, { gender, yob, userName, bio });
-    return OK(res, "Update user information successfully", { user });
   });
 
   changePassword = catchAsync(async (req, res) => {
@@ -53,16 +42,6 @@ class UserController {
     const userId = req.jwtDecoded.userId || req.jwtDecoded.id;
     const user = await userService.getUserById(userId);
     return OK(res, "Get profile successfully", { user });
-  });
-
-  uploadAvatar = catchAsync(async (req, res) => {
-    if (!req.file) {
-      return BAD_REQUEST(res, "No file uploaded");
-    }
-
-    const userId = req.id;
-    const result = await userService.updateAvatar(userId, req.file.path);
-    return OK(res, "Avatar updated successfully", result);
   });
 
   // Đăng nhập bằng Google
@@ -123,24 +102,6 @@ class UserController {
     })(req, res, next);
   });
 
-  // Theo dõi người dùng
-  followUser = catchAsync(async (req, res) => {
-    const userId = req.id;
-    const followId = req.params.id;
-
-    const result = await userService.followUser(userId, followId);
-    return OK(res, result.message);
-  });
-
-  // Hủy theo dõi người dùng
-  unfollowUser = catchAsync(async (req, res) => {
-    const userId = req.id;
-    const unfollowId = req.params.id;
-
-    const result = await userService.unfollowUser(userId, unfollowId);
-    return OK(res, result.message);
-  });
-
   // Lấy profile của user hiện tại
   getProfile = catchAsync(async (req, res) => {
     const userId = req.id;
@@ -151,43 +112,158 @@ class UserController {
   // Cập nhật profile
   updateProfile = catchAsync(async (req, res) => {
     const userId = req.id;
-    const { userName, phone, address, dateOfBirth, gender, email, bio } = req.body;
+    const updateData = req.body;
 
-    if (!userName && !phone && !address && !dateOfBirth && !gender && !email && !bio) {
-      return BAD_REQUEST(res, "No profile fields provided");
+    try {
+      const updatedUser = await userService.updateInfo(userId, updateData);
+      return OK(res, "Profile updated successfully", { user: updatedUser });
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
     }
-
-    const user = await userService.updateInfo(userId, {
-      userName,
-      phone,
-      address,
-      dateOfBirth,
-      gender,
-      email,
-      bio,
-    });
-    return OK(res, "Update user profile successfully", { user });
   });
 
-  // Cập nhật avatar từ base64 string
-  updateAvatar = catchAsync(async (req, res) => {
+  // Cập nhật thông tin user
+  updateInfo = catchAsync(async (req, res) => {
+    const userId = req.id;
+    const updateData = req.body;
+
     try {
-      const { profilePicture } = req.body;
-      const userId = req.id;
+      const updatedUser = await userService.updateInfo(userId, updateData);
+      return OK(res, "User information updated successfully", { user: updatedUser });
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  });
 
-      if (!profilePicture) {
-        return BAD_REQUEST(res, "No profile picture provided");
-      }
+  // Cập nhật avatar (URL)
+  updateAvatar = catchAsync(async (req, res) => {
+    const userId = req.id;
+    const { profilePicture } = req.body;
 
-      // Upload base64 image lên Cloudinary
-      const uploadResponse = await cloudinary.uploader.upload(profilePicture, {
-        folder: 'QuitSmoke',
-        transformation: [{ width: 500, height: 500, crop: 'limit' }]
-      });
+    if (!profilePicture) {
+      return BAD_REQUEST(res, "Profile picture URL is required");
+    }
 
-      // Cập nhật avatar trong database
-      const result = await userService.updateAvatar(userId, uploadResponse.secure_url);
-      return OK(res, "Update avatar successfully", result);
+    try {
+      const updatedUser = await userService.updateAvatar(userId, profilePicture);
+      return OK(res, "Avatar updated successfully", { user: updatedUser });
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  });
+
+  // Upload avatar file
+  uploadAvatar = catchAsync(async (req, res) => {
+    const userId = req.id;
+
+    if (!req.file) {
+      return BAD_REQUEST(res, "Avatar file is required");
+    }
+
+    try {
+      const updatedUser = await userService.uploadAvatar(userId, req.file);
+      return OK(res, "Avatar uploaded successfully", { user: updatedUser });
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  });
+
+  // Upload avatar manual (base64/buffer)
+  uploadAvatarManual = catchAsync(async (req, res) => {
+    const userId = req.id;
+    const { imageData } = req.body;
+
+    if (!imageData) {
+      return BAD_REQUEST(res, "Image data is required");
+    }
+
+    try {
+      const updatedUser = await userService.uploadAvatarManual(userId, imageData);
+      return OK(res, "Avatar uploaded successfully", { user: updatedUser });
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  });
+
+  // Follow user
+  followUser = catchAsync(async (req, res) => {
+    const followerId = req.id;
+    const followedUserId = req.params.id;
+
+    try {
+      const result = await followService.followUser(followerId, followedUserId);
+      return OK(res, "Followed user successfully", result);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  });
+
+  // Unfollow user
+  unfollowUser = catchAsync(async (req, res) => {
+    const followerId = req.id;
+    const followedUserId = req.params.id;
+
+    try {
+      const result = await followService.unfollowUser(followerId, followedUserId);
+      return OK(res, "Unfollowed user successfully", result);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  });
+
+  // Lấy danh sách followers
+  getFollowers = catchAsync(async (req, res) => {
+    const userId = req.params.id || req.id;
+
+    try {
+      const followers = await followService.getFollowers(userId);
+      return OK(res, "Get followers successfully", { followers });
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  });
+
+  // Lấy danh sách following
+  getFollowing = catchAsync(async (req, res) => {
+    const userId = req.params.id || req.id;
+
+    try {
+      const following = await followService.getFollowing(userId);
+      return OK(res, "Get following successfully", { following });
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  });
+
+  // Lấy thống kê user (followers, following count)
+  getUserStats = catchAsync(async (req, res) => {
+    const userId = req.params.id || req.id;
+
+    try {
+      const statsData = await userService.getUserStats(userId);
+      return OK(res, "Get user stats successfully", statsData);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  });
+
+  // Tìm kiếm users
+  searchUsers = catchAsync(async (req, res) => {
+    const { q: searchQuery, page = 1, limit = 10 } = req.query;
+    const currentUserId = req.id;
+
+    if (!searchQuery || searchQuery.trim() === '') {
+      return BAD_REQUEST(res, "Search query is required");
+    }
+
+    try {
+      const searchResult = await userService.searchUsers(
+        searchQuery.trim(),
+        currentUserId,
+        parseInt(page),
+        parseInt(limit)
+      );
+      return OK(res, "Search users successfully", searchResult);
     } catch (error) {
       return BAD_REQUEST(res, error.message);
     }
