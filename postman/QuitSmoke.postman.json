@@ -16,7 +16,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"email\": \"hoangduc@gmail.com\",\r\n    \"password\": \"123456\"\r\n}",
+							"raw": "{\r\n    \"email\": \"hoangduc05122003@gmail.com\",\r\n    \"password\": \"1234567\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1031,6 +1031,128 @@
 								"surveys",
 								"me",
 								"surveys"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Member Ship",
+			"item": [
+				{
+					"name": "Create Package",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgyODI4MjUsImV4cCI6MTc0ODI4NjQyNX0.uk76E8cXncB5g9drs_-1olXax6X095GEiR-FZTL3sFo",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"Super Premium\",\r\n  \"price\": 500,\r\n  \"duration\": 120,\r\n  \"features\": [\"Unlimited Access\", \"Priority Support\", \"Exclusive Content\"]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/packages",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All package",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgyODI4MjUsImV4cCI6MTc0ODI4NjQyNX0.uk76E8cXncB5g9drs_-1olXax6X095GEiR-FZTL3sFo",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"Super Premium\",\r\n  \"price\": 500,\r\n  \"duration\": 120,\r\n  \"features\": [\"Unlimited Access\", \"Priority Support\", \"Exclusive Content\"]\r\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/packages",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get package by Id",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgyODI4MjUsImV4cCI6MTc0ODI4NjQyNX0.uk76E8cXncB5g9drs_-1olXax6X095GEiR-FZTL3sFo",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"Super Premium\",\r\n  \"price\": 500,\r\n  \"duration\": 120,\r\n  \"features\": [\"Unlimited Access\", \"Priority Support\", \"Exclusive Content\"]\r\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/packages/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"packages",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "6834af1ef2c32d9c4512730a"
+								}
 							]
 						}
 					},
