@@ -16,7 +16,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"email\": \"hoangduc05122003@gmail.com\",\r\n    \"password\": \"123456\"\r\n}",
+							"raw": "{\r\n    \"email\": \"hoangduc@gmail.com\",\r\n    \"password\": \"123456\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -170,7 +170,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MmUwZDBhNDE5ZTc4YTk0MTk3ZDc5OCIsImVtYWlsIjoiaG9hbmdkdWNAZ21haWwuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzQ3ODUyNDU5LCJleHAiOjE3NDc4NTYwNTl9.bVg42-qULk2KJDNXUg92GWU9-Qk93aiYhHb92qUv4BQ",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgyNjUwNDQsImV4cCI6MTc0ODI2ODY0NH0.yrP4o2VbqxZ2O-WiHTullQ58_vMqighrlpyw47EkumE",
 									"type": "string"
 								}
 							]
@@ -209,7 +209,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgxNjY2NTUsImV4cCI6MTc0ODE3MDI1NX0.H8xFo29LCquWc7QfUlElQE3nkFNxcuFRTNmGJXqPZM4",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgyNjUwNDQsImV4cCI6MTc0ODI2ODY0NH0.yrP4o2VbqxZ2O-WiHTullQ58_vMqighrlpyw47EkumE",
 									"type": "string"
 								}
 							]
@@ -218,7 +218,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n  \"title\": \"My New Blog 3\",\r\n  \"content\": \"Nội dung blog 3\",\r\n  \"description\": \"Mô tả ngắn về blog\",\r\n  \"tags\": [\"cai thuốc lá\", \"sức khỏe\"]\r\n}",
+							"raw": "{\r\n  \"title\": \"My New Blog 6\",\r\n  \"content\": \"Nội dung blog 6\",\r\n  \"description\": \"Mô tả ngắn về blog\",  \r\n  \"tags\": [\"cai thuốc lá\", \"sức khỏe\"]\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -402,6 +402,87 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Get all Tags",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgyNjUwNDQsImV4cCI6MTc0ODI2ODY0NH0.yrP4o2VbqxZ2O-WiHTullQ58_vMqighrlpyw47EkumE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:5000/blogs/tags",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"blogs",
+								"tags"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tag By Id",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgyNjUwNDQsImV4cCI6MTc0ODI2ODY0NH0.yrP4o2VbqxZ2O-WiHTullQ58_vMqighrlpyw47EkumE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:5000/blogs/tag/:tagId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"blogs",
+								"tag",
+								":tagId"
+							],
+							"variable": [
+								{
+									"key": "tagId",
+									"value": "cai-thuốc-lá"
+								}
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -494,7 +575,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzE2MDk5MWMwOThhNjdlODRjYzlkNSIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgwOTQ1MzAsImV4cCI6MTc0ODA5ODEzMH0.FBK7ess5kvYQzWEEhq9PXMiqXphqTqrCV0IYqA8LBL8",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgyMjk4NzAsImV4cCI6MTc0ODIzMzQ3MH0.AIR3BGifRWs9u04nFkbV5tVj7sAqpuGsZtO97c3Stug",
 									"type": "string"
 								}
 							]
@@ -537,7 +618,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n  \"gender\": \"male\",\r\n  \"yob\": \"2003\",\r\n  \"userName\": \"HoangDucVipPro\"\r\n}",
+							"raw": "{\r\n  \"gender\": \"male\",\r\n  \"yob\": \"2003\",\r\n  \"userName\": \"HoangDucVipPro\",\r\n  \"bio\": \"đây là bio mới\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -676,7 +757,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgxNjY2NTUsImV4cCI6MTc0ODE3MDI1NX0.H8xFo29LCquWc7QfUlElQE3nkFNxcuFRTNmGJXqPZM4",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2NiZmY3NzQzMjlhOWMxMWE0ZiIsImVtYWlsIjoiaG9hbmdkdWMwNTEyMjAwM0BnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDgyMzM1MjEsImV4cCI6MTc0ODIzNzEyMX0.xDf4IN5rB9XJfo-bI_WEnr4uynfbX_xEDjcsZn514B8",
 									"type": "string"
 								}
 							]
@@ -792,6 +873,164 @@
 							"path": [
 								"chat",
 								"users"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Survey",
+			"item": [
+				{
+					"name": "Create survey",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2RiZmY3NzQzMjlhOWMxMWE1MiIsImVtYWlsIjoiaG9hbmdkdWNAZ21haWwuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NDgyNzY3MjcsImV4cCI6MTc0ODI4MDMyN30.IDqqe1y9qp_3uJkT9HInikkwa_i4EJX0fBIo4eP8X00",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"userId\": \"60d5f3b2c8b7a123456789ab\",\r\n  \"motivation\": \"Muốn cải thiện sức khỏe\",\r\n  \"smokingDurationYear\": 5,\r\n  \"peakSmokingTimes\": \"Sáng và khi căng thẳng\",\r\n  \"quitAttempts\": 2,\r\n  \"supportNeeded\": \"Tư vấn tâm lý và nhắc nhở\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/surveys/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"surveys",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update survey",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2RiZmY3NzQzMjlhOWMxMWE1MiIsImVtYWlsIjoiaG9hbmdkdWNAZ21haWwuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NDgyNzY3MjcsImV4cCI6MTc0ODI4MDMyN30.IDqqe1y9qp_3uJkT9HInikkwa_i4EJX0fBIo4eP8X00",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"userId\": \"60d5f3b2c8b7a123456789ab\",\r\n  \"motivation\": \"Muốn cải thiện sức khỏe\",\r\n  \"smokingDurationYear\": 5,\r\n  \"peakSmokingTimes\": \"Sáng và khi căng thẳng\",\r\n  \"quitAttempts\": 2,\r\n  \"supportNeeded\": \"Tư vấn tâm lý và nhắc nhở\"\r\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/surveys/:surveyId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"surveys",
+								":surveyId"
+							],
+							"variable": [
+								{
+									"key": "surveyId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get survey by Id",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2RiZmY3NzQzMjlhOWMxMWE1MiIsImVtYWlsIjoiaG9hbmdkdWNAZ21haWwuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NDgyNzY3MjcsImV4cCI6MTc0ODI4MDMyN30.IDqqe1y9qp_3uJkT9HInikkwa_i4EJX0fBIo4eP8X00",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/surveys/:surveyId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"surveys",
+								":surveyId"
+							],
+							"variable": [
+								{
+									"key": "surveyId",
+									"value": "683499a0fe942e7dd8ade663"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get me survey",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzJlN2RiZmY3NzQzMjlhOWMxMWE1MiIsImVtYWlsIjoiaG9hbmdkdWNAZ21haWwuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NDgyNzY3MjcsImV4cCI6MTc0ODI4MDMyN30.IDqqe1y9qp_3uJkT9HInikkwa_i4EJX0fBIo4eP8X00",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"userId\": \"60d5f3b2c8b7a123456789ab\",\r\n  \"motivation\": \"Muốn cải thiện sức khỏe\",\r\n  \"smokingDurationYear\": 5,\r\n  \"peakSmokingTimes\": \"Sáng và khi căng thẳng\",\r\n  \"quitAttempts\": 2,\r\n  \"supportNeeded\": \"Tư vấn tâm lý và nhắc nhở\"\r\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/surveys/me/surveys",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"surveys",
+								"me",
+								"surveys"
 							]
 						}
 					},
