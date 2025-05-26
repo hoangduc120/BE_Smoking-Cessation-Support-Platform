@@ -189,9 +189,7 @@ class UserService {
         throw new Error('User not found or inactive');
       }
 
-      // fileInfo đã được Multer + CloudinaryStorage upload rồi
-      // Chỉ cần lấy URL từ file.path (Cloudinary URL)
-      const imageUrl = fileInfo.path; // Cloudinary URL từ multer
+      const imageUrl = fileInfo.path;
 
       const updatedUser = await User.findByIdAndUpdate(
         userId,

@@ -37,7 +37,8 @@ var blogSchema = new mongoose.Schema({
         ref: "Comment",
     }],
     tags: [{
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Tags",
     }],
     isDeleted: {
         type: Boolean,

@@ -40,6 +40,33 @@ const getBlogBySlug = asyncHandler(async (req, res) => {
     })
 })
 
+const getAllTags = asyncHandler(async (req, res) => {
+    const tags = await blogService.getAllTags();
+    res.status(200).json({
+        success: true,
+        message: "Tags fetched successfully",
+        data: tags
+    })
+})
+
+const getBlogsByTag = asyncHandler(async (req, res) => {
+    const { tagId } = req.params;
+    const { page = 1, limit = 10, sortBy, sortOrder } = req.query;
+
+    const result = await blogService.getBlogsByTag(tagId, { page, limit, sortBy, sortOrder });
+
+    if (!result) {
+        res.status(404);
+        throw new Error('Tag not found');
+    }
+
+    res.status(200).json({
+        success: true,
+        message: "Blogs with tag fetched successfully",
+        data: result
+    })
+})
+
 const updateBlog = asyncHandler(async (req, res) => {
     if (!req.user || !req.user._id) {
         res.status(401);
@@ -124,5 +151,7 @@ module.exports = {
     updateBlog,
     deleteBlog,
     likeBlog,
-    addComment
+    addComment,
+    getAllTags,
+    getBlogsByTag
 }
