@@ -4,9 +4,9 @@ const MemberShipPlan = require("../models/memberShipPlan.model");
 class MemberShipPlanService {
     async createPackage(data) {
         try {
-            const package = await MemberShipPlan.create(data);
-            await package.save();
-            return package;
+            const packageData = await MemberShipPlan.create(data);
+            await packageData.save();
+            return packageData;
         } catch (error) {
             throw new Error(error.message);
         }
@@ -20,33 +20,33 @@ class MemberShipPlanService {
     }
     async getPackageById(id) {
         try {
-            const package = await MemberShipPlan.findById(id).select('-__v');
-            if (!package) {
+            const packageData = await MemberShipPlan.findById(id).select('-__v');
+            if (!packageData) {
                 throw new Error('Package not found');
             }
-            return package;
+            return packageData;
         } catch (error) {
             throw new Error(error.message);
         }
     }
     async updatePackage(id, data) {
         try {
-            const package = await MemberShipPlan.findByIdAndUpdate(id, data, { new: true }).select('-__v');
-            if (!package) {
+            const packageData = await MemberShipPlan.findByIdAndUpdate(id, data, { new: true }).select('-__v');
+            if (!packageData) {
                 throw new Error('Package not found');
             }
-            return package;
+            return packageData;
         } catch (error) {
             throw new Error(error.message);
         }
     }
     async deletePackage(id) {
         try {
-            const package = await MemberShipPlan.findByIdAndDelete(id).select('-__v');
-            if (!package) {
+            const packageData = await MemberShipPlan.findByIdAndDelete(id).select('-__v');
+            if (!packageData) {
                 throw new Error('Package not found');
             }
-            return package;
+            return packageData;
         } catch (error) {
             throw new Error(error.message);
         }

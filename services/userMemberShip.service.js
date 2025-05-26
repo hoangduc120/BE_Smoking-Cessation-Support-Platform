@@ -6,12 +6,12 @@ class UserMemberShipService {
     async registerPackage({ userId, packageId, durationType }) {
         try {
             const user = await User.findById(userId)
-            const package = await MemberShipPlan.findById(packageId)
-            if (!user || !package) {
+            const packageData = await MemberShipPlan.findById(packageId)
+            if (!user || !packageData) {
                 throw new Error('User or package not found')
             }
             const duration = durationType === "week" ? 7 : 30
-            const price = durationType === "week" ? package.price / 4 : package.price
+            const price = durationType === "week" ? packageData.price / 4 : packageData.price
 
             const userMemberShip = new UserMembership({
                 userId,
@@ -19,6 +19,7 @@ class UserMemberShipService {
                 startDate: new Date(),
                 endDate: new Date(new Date().getTime() + duration * 24 * 60 * 60 * 1000),
                 paymentStatus: 'pending',
+                price: price
             })
             await userMemberShip.save()
             return userMemberShip
@@ -47,7 +48,20 @@ class UserMemberShipService {
             if (!user) {
                 throw new Error('User not found')
             }
-            return await user.hasFeatureAccess(feature)
+
+            // Kiểm tra xem người dùng có gói thành viên đang hoạt động không
+            const activeMembership = await UserMembership.findOne({
+                userId,
+                paymentStatus: 'paid',
+                endDate: { $gte: new Date() }
+            }).populate('memberShipPlanId');
+
+            if (!activeMembership) {
+                return false; // Không có gói thành viên hoạt động
+            }
+
+            // Kiểm tra xem tính năng có nằm trong gói thành viên không
+            return activeMembership.memberShipPlanId.features.includes(feature);
         } catch (error) {
             throw new Error(error.message)
         }

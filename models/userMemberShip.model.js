@@ -25,6 +25,10 @@ var userMemberShipSchema = new mongoose.Schema({
         enum: ['pending', 'paid', 'failed'],
         default: 'pending',
     },
+    price: {
+        type: Number,
+        required: true,
+    },
 }, { timestamps: true });
 
 //Export the model

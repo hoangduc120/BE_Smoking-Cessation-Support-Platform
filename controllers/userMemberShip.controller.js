@@ -15,7 +15,7 @@ class UserMemberShipController {
     }
     async getActiveMembership(req, res) {
         try {
-            const userMemberShip = await UserMemberShipService.checkFeatureAccess(req.params.userId)
+            const userMemberShip = await UserMemberShipService.getActiveMembership(req.params.userId)
             res.status(200).json({
                 success: true,
                 message: 'User membership fetched successfully',
