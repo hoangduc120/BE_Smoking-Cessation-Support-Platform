@@ -4,6 +4,8 @@ const blogController = require('../controllers/blog.controller');
 const { authMiddleware, restrictTo } = require('../middlewares/authMiddleware');
 
 router.get('/', blogController.getAllBlogs);
+router.get('/tags', blogController.getAllTags);
+router.get('/tag/:tagId', blogController.getBlogsByTag);
 router.get('/:slug', blogController.getBlogBySlug);
 
 router.use(authMiddleware);
