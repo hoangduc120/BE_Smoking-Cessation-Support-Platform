@@ -8,6 +8,8 @@ const quitPlanRoute = require("./quitPlan.route");
 const badgeRoute = require("./badge.route");
 const chatRoute = require("./chatmessage.route");
 const surveyRoute = require("./survey.route");
+const memberShipPlanRoute = require("./memberShipPlan.route");
+const userMemberShipRoute = require("./userMemberShip.route");
 
 const routes = [
   {
@@ -37,6 +39,14 @@ const routes = [
   {
     path: "/surveys",
     route: surveyRoute,
+  },
+  {
+    path: "/packages",
+    route: memberShipPlanRoute,
+  },
+  {
+    path: "/memberships",
+    route: userMemberShipRoute,
   },
 ];
 
