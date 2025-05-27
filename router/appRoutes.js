@@ -10,6 +10,7 @@ const chatRoute = require("./chatmessage.route");
 const surveyRoute = require("./survey.route");
 const memberShipPlanRoute = require("./memberShipPlan.route");
 const userMemberShipRoute = require("./userMemberShip.route");
+const paymentRoute = require("./payment.route");
 
 const routes = [
   {
@@ -47,6 +48,10 @@ const routes = [
   {
     path: "/memberships",
     route: userMemberShipRoute,
+  },
+  {
+    path: "/payment",
+    route: paymentRoute,
   },
 ];
 

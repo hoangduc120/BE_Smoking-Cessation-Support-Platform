@@ -29,6 +29,14 @@ var userMemberShipSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    paymentInfo: {
+        orderId: String,
+        amount: Number,
+        createDate: String,
+        transactionId: String,
+        paymentDate: Date,
+        bankCode: String
+    }
 }, { timestamps: true });
 
 //Export the model
