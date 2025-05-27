@@ -1,0 +1,2527 @@
+
+openapi: 3.0.0
+servers:
+  - description: QuitSmoke API
+    url: http://localhost:5000/api
+info:
+  version: "1.0.0"
+  title: QuitSmoke API
+  description: API for user authentication, blog management, user profile management, survey management, membership plan management, user membership management, payment processing, and chat messaging, developed by Hoàng Đức.
+  contact:
+    name: Hoàng Đức
+    email: hoangduc@example.com
+security:
+  - BearerAuth: []
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: User login
+      description: Authenticates a user and returns access and refresh tokens.
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successfully logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: User registration
+      description: Registers a new user in the system.
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '200':
+          description: Successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Invalid registration data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: User logout
+      description: Logs out the user by invalidating the refresh token.
+      operationId: logout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/refresh-token:
+    post:
+      tags:
+        - Auth
+      summary: Refresh access token
+      description: Generates a new access token using a valid refresh token.
+      operationId: refreshToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+        required: true
+      responses:
+        '200':
+          description: Successfully refreshed token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/google:
+    get:
+      tags:
+        - Auth
+      summary: Initiate Google OAuth login
+      description: Redirects to Google OAuth for authentication.
+      operationId: googleAuth
+      responses:
+        '302':
+          description: Redirect to Google OAuth
+  /auth/google/callback:
+    get:
+      tags:
+        - Auth
+      summary: Google OAuth callback
+      description: Handles Google OAuth callback and returns tokens.
+      operationId: googleCallback
+      responses:
+        '302':
+          description: Redirect with access token
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/forgot-password:
+    get:
+      tags:
+        - Auth
+      summary: Request password reset
+      description: Initiates the password reset process by sending a reset link.
+      operationId: forgotPassword
+      responses:
+        '200':
+          description: Password reset link sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/reset-password:
+    put:
+      tags:
+        - Auth
+      summary: Reset user password
+      description: Resets the user password using a valid reset token.
+      operationId: resetPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Invalid reset token or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blogs:
+    get:
+      tags:
+        - Blog
+      summary: Get all blogs
+      description: Retrieves a list of all blogs.
+      operationId: getAllBlogs
+      responses:
+        '200':
+          description: List of blogs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Blog'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Blog
+      summary: Create a new blog
+      description: Creates a new blog post (requires user, coach, or admin role).
+      operationId: createBlog
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlogCreateRequest'
+        required: true
+      responses:
+        '200':
+          description: Blog created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Blog'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blogs/tags:
+    get:
+      tags:
+        - Blog
+      summary: Get all tags
+      description: Retrieves a list of all tags used in blogs.
+      operationId: getAllTags
+      responses:
+        '200':
+          description: List of tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  example: 'motivation'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blogs/tag/{tagId}:
+    get:
+      tags:
+        - Blog
+      summary: Get blogs by tag
+      description: Retrieves all blogs associated with a specific tag.
+      operationId: getBlogsByTag
+      parameters:
+        - name: tagId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'motivation'
+      responses:
+        '200':
+          description: List of blogs for the tag
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Blog'
+        '404':
+          description: Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blogs/{slug}:
+    get:
+      tags:
+        - Blog
+      summary: Get blog by slug
+      description: Retrieves a blog post by its slug.
+      operationId: getBlogBySlug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'how-to-quit-smoking'
+      responses:
+        '200':
+          description: Blog details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Blog'
+        '404':
+          description: Blog not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blogs/{id}:
+    put:
+      tags:
+        - Blog
+      summary: Update a blog
+      description: Updates an existing blog post (requires user, coach, or admin role).
+      operationId: updateBlog
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlogUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: Blog updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Blog'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Blog not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Blog
+      summary: Delete a blog
+      description: Deletes a blog post (requires user, coach, or admin role).
+      operationId: deleteBlog
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Blog deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Blog not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blogs/{bid}/like:
+    post:
+      tags:
+        - Blog
+      summary: Like a blog
+      description: Likes a blog post (requires user, coach, or admin role).
+      operationId: likeBlog
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bid
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Blog liked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Blog not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blogs/{id}/comment:
+    post:
+      tags:
+        - Blog
+      summary: Add a comment to a blog
+      description: Adds a comment to a blog post (requires user, coach, or admin role).
+      operationId: addComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentRequest'
+        required: true
+      responses:
+        '200':
+          description: Comment added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Blog not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/all:
+    get:
+      tags:
+        - User
+      summary: Get all users
+      description: Retrieves a list of all users (requires admin role).
+      operationId: getAllUsers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/search:
+    get:
+      tags:
+        - User
+      summary: Search users
+      description: Searches for users based on query parameters.
+      operationId: searchUsers
+      parameters:
+        - name: query
+          in: query
+          description: Search query (e.g., username or email)
+          schema:
+            type: string
+            example: 'john'
+      responses:
+        '200':
+          description: List of matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/profile/me:
+    get:
+      tags:
+        - User
+      summary: Get current user profile
+      description: Retrieves the profile of the authenticated user.
+      operationId: getProfileMe
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/profile:
+    get:
+      tags:
+        - User
+      summary: Get user profile
+      description: Retrieves the profile of a specific user.
+      operationId: getProfile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - User
+      summary: Update user profile
+      description: Updates the profile of the authenticated user.
+      operationId: updateProfile
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/{id}:
+    get:
+      tags:
+        - User
+      summary: Get user by ID
+      description: Retrieves a user by their ID.
+      operationId: getUserById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/{id}/stats:
+    get:
+      tags:
+        - User
+      summary: Get user statistics
+      description: Retrieves statistics for a specific user.
+      operationId: getUserStats
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: User statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStats'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/update-profile:
+    put:
+      tags:
+        - User
+      summary: Update user information
+      description: Updates user information such as name or email.
+      operationId: updateUserInfo
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: User information updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/change-password:
+    put:
+      tags:
+        - User
+      summary: Change user password
+      description: Changes the password of the authenticated user.
+      operationId: changePassword
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/update-avatar:
+    put:
+      tags:
+        - User
+      summary: Update user avatar
+      description: Updates the avatar of the authenticated user.
+      operationId: updateAvatar
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AvatarUploadRequest'
+        required: true
+      responses:
+        '200':
+          description: Avatar updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/upload-avatar:
+    put:
+      tags:
+        - User
+      summary: Upload user avatar
+      description: Uploads a new avatar for the authenticated user using Cloudinary.
+      operationId: uploadAvatar
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AvatarUploadRequest'
+        required: true
+      responses:
+        '200':
+          description: Avatar uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/upload-avatar-manual:
+    put:
+      tags:
+        - User
+      summary: Manually upload user avatar
+      description: Manually uploads a new avatar for the authenticated user.
+      operationId: uploadAvatarManual
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AvatarUploadRequest'
+        required: true
+      responses:
+        '200':
+          description: Avatar uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/follow/{id}:
+    put:
+      tags:
+        - User
+      summary: Follow a user
+      description: Follows a user by their ID.
+      operationId: followUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: User followed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/unfollow/{id}:
+    put:
+      tags:
+        - User
+      summary: Unfollow a user
+      description: Unfollows a user by their ID.
+      operationId: unfollowUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: User unfollowed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/followers/{id}:
+    get:
+      tags:
+        - User
+      summary: Get followers of a user
+      description: Retrieves the list of followers for a specific user.
+      operationId: getFollowers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: List of followers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/following/{id}:
+    get:
+      tags:
+        - User
+      summary: Get users followed by a user
+      description: Retrieves the list of users followed by a specific user.
+      operationId: getFollowing
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: List of followed users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/my-followers:
+    get:
+      tags:
+        - User
+      summary: Get my followers
+      description: Retrieves the list of followers of the authenticated user.
+      operationId: getMyFollowers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of followers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/my-following:
+    get:
+      tags:
+        - User
+      summary: Get users I follow
+      description: Retrieves the list of users followed by the authenticated user.
+      operationId: getMyFollowing
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of followed users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /surveys:
+    get:
+      tags:
+        - Survey
+      summary: Get all surveys
+      description: Retrieves a list of all surveys (requires admin role).
+      operationId: getAllSurveys
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of surveys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Survey'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Survey
+      summary: Create a new survey
+      description: Creates a new survey (requires user role).
+      operationId: createSurvey
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveyCreateRequest'
+        required: true
+      responses:
+        '200':
+          description: Survey created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Survey'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /surveys/me/surveys:
+    get:
+      tags:
+        - Survey
+      summary: Get surveys by authenticated user
+      description: Retrieves all surveys created by the authenticated user (requires user role).
+      operationId: getSurveysByUserIdMe
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of surveys by user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Survey'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /surveys/user/{userId}:
+    get:
+      tags:
+        - Survey
+      summary: Get surveys by user ID
+      description: Retrieves all surveys created by a specific user (requires authentication).
+      operationId: getSurveysByUserId
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: List of surveys by user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Survey'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /surveys/{surveyId}:
+    get:
+      tags:
+        - Survey
+      summary: Get survey by ID
+      description: Retrieves a survey by its ID (requires user role).
+      operationId: getSurveyById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: surveyId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '67890'
+      responses:
+        '200':
+          description: Survey details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Survey'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Survey not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Survey
+      summary: Update a survey
+      description: Updates an existing survey (requires user role).
+      operationId: updateSurvey
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: surveyId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '67890'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveyUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: Survey updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Survey'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Survey not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Survey
+      summary: Delete a survey
+      description: Deletes a survey (requires user or admin role).
+      operationId: deleteSurvey
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: surveyId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '67890'
+      responses:
+        '200':
+          description: Survey deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Survey not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /membership-plans:
+    get:
+      tags:
+        - MembershipPlan
+      summary: Get all membership plans
+      description: Retrieves a list of all membership plans.
+      operationId: getAllPackages
+      responses:
+        '200':
+          description: List of membership plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MembershipPlan'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - MembershipPlan
+      summary: Create a new membership plan
+      description: Creates a new membership plan (requires admin role).
+      operationId: createPackage
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembershipPlanCreateRequest'
+        required: true
+      responses:
+        '200':
+          description: Membership plan created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipPlan'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /membership-plans/{id}:
+    get:
+      tags:
+        - MembershipPlan
+      summary: Get membership plan by ID
+      description: Retrieves a membership plan by its ID.
+      operationId: getPackageById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'plan-001'
+      responses:
+        '200':
+          description: Membership plan details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipPlan'
+        '404':
+          description: Membership plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - MembershipPlan
+      summary: Update a membership plan
+      description: Updates an existing membership plan (requires admin role).
+      operationId: updatePackage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'plan-001'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembershipPlanUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: Membership plan updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipPlan'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Membership plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - MembershipPlan
+      summary: Delete a membership plan
+      description: Deletes a membership plan (requires admin role).
+      operationId: deletePackage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'plan-001'
+      responses:
+        '200':
+          description: Membership plan deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Membership plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /user-memberships/register:
+    post:
+      tags:
+        - UserMembership
+      summary: Register for a membership plan
+      description: Registers the authenticated user for a membership plan.
+      operationId: registerPackage
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserMembershipRegisterRequest'
+        required: true
+      responses:
+        '200':
+          description: Successfully registered for membership plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserMembership'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /user-memberships/active/{userId}:
+    get:
+      tags:
+        - UserMembership
+      summary: Get active membership
+      description: Retrieves the active membership for a specific user.
+      operationId: getActiveMembership
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Active membership details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserMembership'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No active membership found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /user-memberships/access/{userId}/{feature}:
+    get:
+      tags:
+        - UserMembership
+      summary: Check feature access
+      description: Checks if a user has access to a specific feature based on their membership.
+      operationId: checkFeatureAccess
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+        - name: feature
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'personalized-coaching'
+      responses:
+        '200':
+          description: Feature access status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hasAccess:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User or feature not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /user-memberships/pending/{userId}:
+    get:
+      tags:
+        - UserMembership
+      summary: Get pending memberships
+      description: Retrieves all pending memberships for a specific user.
+      operationId: getPendingMemberships
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: List of pending memberships
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserMembership'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /user-memberships/history/{userId}:
+    get:
+      tags:
+        - UserMembership
+      summary: Get membership history
+      description: Retrieves the membership history for a specific user.
+      operationId: getMembershipHistory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Membership history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserMembership'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /payments/create-payment:
+    post:
+      tags:
+        - Payment
+      summary: Create payment URL
+      description: Generates a payment URL for a user membership (requires authentication).
+      operationId: createPaymentUrl
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreateRequest'
+        required: true
+      responses:
+        '200':
+          description: Payment URL created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paymentUrl:
+                    type: string
+                    format: uri
+                    example: 'https://vnpay.vn/payment/12345'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /payments/vnpay-return:
+    get:
+      tags:
+        - Payment
+      summary: Handle payment callback
+      description: Handles the callback from VNPay after payment processing.
+      operationId: paymentCallback
+      parameters:
+        - name: vnp_TxnRef
+          in: query
+          required: true
+          schema:
+            type: string
+            example: 'txn-12345'
+        - name: vnp_ResponseCode
+          in: query
+          required: true
+          schema:
+            type: string
+            example: '00'
+      responses:
+        '200':
+          description: Payment processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Payment failed or invalid callback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /payments/check-status/{userMembershipId}:
+    get:
+      tags:
+        - Payment
+      summary: Check payment status
+      description: Checks the payment status for a user membership (requires authentication).
+      operationId: checkPaymentStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userMembershipId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'mem-12345'
+      responses:
+        '200':
+          description: Payment status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - pending
+                      - completed
+                      - failed
+                    example: 'completed'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Membership not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /chat/users:
+    get:
+      tags:
+        - ChatMessage
+      summary: Get users for sidebar
+      description: Retrieves a list of users for the chat sidebar (requires authentication).
+      operationId: getUsersForSidebar
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /chat/conversations:
+    get:
+      tags:
+        - ChatMessage
+      summary: Get conversations
+      description: Retrieves all conversations for the authenticated user.
+      operationId: getConversations
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /chat/unread-count:
+    get:
+      tags:
+        - ChatMessage
+      summary: Get unread message count
+      description: Retrieves the count of unread messages for the authenticated user.
+      operationId: getUnreadCount
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Unread message count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unreadCount:
+                    type: integer
+                    example: 5
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /chat/messages/{receiverId}:
+    get:
+      tags:
+        - ChatMessage
+      summary: Get messages with a user
+      description: Retrieves all messages between the authenticated user and a specific receiver.
+      operationId: getMessages
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: receiverId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatMessage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - ChatMessage
+      summary: Send a message
+      description: Sends a message to a specific user.
+      operationId: sendMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: receiverId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageRequest'
+        required: true
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /chat/mark-read/{senderId}:
+    put:
+      tags:
+        - ChatMessage
+      summary: Mark messages as read
+      description: Marks messages from a specific sender as read for the authenticated user.
+      operationId: markAsRead
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: senderId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Messages marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Sender not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /chat/messages/{messageId}:
+    delete:
+      tags:
+        - ChatMessage
+      summary: Delete a message
+      description: Deletes a specific message (requires authentication).
+      operationId: deleteMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'msg-12345'
+      responses:
+        '200':
+          description: Message deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'user@example.com'
+        password:
+          type: string
+          example: 'password123'
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - username
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'user@example.com'
+        password:
+          type: string
+          example: 'password123'
+        username:
+          type: string
+          example: 'john_doe'
+        role:
+          type: string
+          enum:
+            - user
+            - coach
+            - admin
+          example: 'user'
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - password
+      properties:
+        token:
+          type: string
+          example: 'reset-token-123'
+        password:
+          type: string
+          example: 'newpassword123'
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        refreshToken:
+          type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6example'
+        user:
+          $ref: '#/components/schemas/User'
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '12345'
+        username:
+          type: string
+          example: 'john_doe'
+        email:
+          type: string
+          format: email
+          example: 'user@example.com'
+        role:
+          type: string
+          enum:
+            - user
+            - coach
+            - admin
+          example: 'user'
+        avatar:
+          type: string
+          format: uri
+          example: 'https://res.cloudinary.com/example/avatar.jpg'
+    Blog:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '12345'
+        title:
+          type: string
+          example: 'How to Quit Smoking'
+        slug:
+          type: string
+          example: 'how-to-quit-smoking'
+        content:
+          type: string
+          example: 'This is a blog about quitting smoking...'
+        tags:
+          type: array
+          items:
+            type: string
+            example: 'motivation'
+        author:
+          $ref: '#/components/schemas/User'
+        likes:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+    BlogCreateRequest:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+          example: 'How to Quit Smoking'
+        content:
+          type: string
+          example: 'This is a blog about quitting smoking...'
+        tags:
+          type: array
+          items:
+            type: string
+            example: 'motivation'
+    BlogUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: 'Updated: How to Quit Smoking'
+        content:
+          type: string
+          example: 'Updated content about quitting smoking...'
+        tags:
+          type: array
+          items:
+            type: string
+            example: 'motivation'
+    CommentRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          example: 'Great blog post!'
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '67890'
+        content:
+          type: string
+          example: 'Great blog post!'
+        author:
+          $ref: '#/components/schemas/User'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-05-27T20:36:00Z'
+    UserUpdateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          example: 'john_doe_updated'
+        email:
+          type: string
+          format: email
+          example: 'updated@example.com'
+    ChangePasswordRequest:
+      type: object
+      required:
+        - oldPassword
+        - newPassword
+      properties:
+        oldPassword:
+          type: string
+          example: 'oldpassword123'
+        newPassword:
+          type: string
+          example: 'newpassword123'
+    AvatarUploadRequest:
+      type: object
+      properties:
+        avatar:
+          type: string
+          format: binary
+    UserStats:
+      type: object
+      properties:
+        blogCount:
+          type: integer
+          example: 10
+        followerCount:
+          type: integer
+          example: 50
+        followingCount:
+          type: integer
+          example: 20
+    Survey:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '67890'
+        title:
+          type: string
+          example: 'Smoking Habits Survey'
+        description:
+          type: string
+          example: 'A survey to understand user smoking habits.'
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              questionText:
+                type: string
+                example: 'How many cigarettes do you smoke daily?'
+              answerType:
+                type: string
+                enum:
+                  - text
+                  - multiple-choice
+                  - number
+                example: 'number'
+              options:
+                type: array
+                items:
+                  type: string
+                  example: '0-5'
+        author:
+          $ref: '#/components/schemas/User'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-05-27T20:36:00Z'
+    SurveyCreateRequest:
+      type: object
+      required:
+        - title
+        - questions
+      properties:
+        title:
+          type: string
+          example: 'Smoking Habits Survey'
+        description:
+          type: string
+          example: 'A survey to understand user smoking habits.'
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              questionText:
+                type: string
+                example: 'How many cigarettes do you smoke daily?'
+              answerType:
+                type: string
+                enum:
+                  - text
+                  - multiple-choice
+                  - number
+                example: 'number'
+              options:
+                type: array
+                items:
+                  type: string
+                  example: '0-5'
+    SurveyUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: 'Updated Smoking Habits Survey'
+        description:
+          type: string
+          example: 'Updated survey to understand user smoking habits.'
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              questionText:
+                type: string
+                example: 'How many cigarettes do you smoke daily?'
+              answerType:
+                type: string
+                enum:
+                  - text
+                  - multiple-choice
+                  - number
+                example: 'number'
+              options:
+                type: array
+                items:
+                  type: string
+                  example: '0-5'
+    MembershipPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'plan-001'
+        name:
+          type: string
+          example: 'Premium Plan'
+        description:
+          type: string
+          example: 'Access to premium features for quitting smoking.'
+        price:
+          type: number
+          format: float
+          example: 9.99
+        duration:
+          type: string
+          example: '1 month'
+        features:
+          type: array
+          items:
+            type: string
+            example: 'Personalized coaching'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-05-27T20:36:00Z'
+    MembershipPlanCreateRequest:
+      type: object
+      required:
+        - name
+        - price
+        - duration
+      properties:
+        name:
+          type: string
+          example: 'Premium Plan'
+        description:
+          type: string
+          example: 'Access to premium features for quitting smoking.'
+        price:
+          type: number
+          format: float
+          example: 9.99
+        duration:
+          type: string
+          example: '1 month'
+        features:
+          type: array
+          items:
+            type: string
+            example: 'Personalized coaching'
+    MembershipPlanUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'Updated Premium Plan'
+        description:
+          type: string
+          example: 'Updated access to premium features.'
+        price:
+          type: number
+          format: float
+          example: 12.99
+        duration:
+          type: string
+          example: '1 month'
+        features:
+          type: array
+          items:
+            type: string
+            example: 'Personalized coaching'
+    UserMembership:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'mem-12345'
+        user:
+          $ref: '#/components/schemas/User'
+        membershipPlan:
+          $ref: '#/components/schemas/MembershipPlan'
+        status:
+          type: string
+          enum:
+            - pending
+            - active
+            - expired
+            - cancelled
+          example: 'active'
+        startDate:
+          type: string
+          format: date-time
+          example: '2025-05-20T00:00:00Z'
+        endDate:
+          type: string
+          format: date-time
+          example: '2025-06-20T00:00:00Z'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-05-20T00:00:00Z'
+    UserMembershipRegisterRequest:
+      type: object
+      required:
+        - membershipPlanId
+      properties:
+        membershipPlanId:
+          type: string
+          example: 'plan-001'
+    PaymentCreateRequest:
+      type: object
+      required:
+        - userMembershipId
+        - amount
+      properties:
+        userMembershipId:
+          type: string
+          example: 'mem-12345'
+        amount:
+          type: number
+          format: float
+          example: 9.99
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'conv-12345'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        lastMessage:
+          $ref: '#/components/schemas/ChatMessage'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-05-27T20:36:00Z'
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'msg-12345'
+        sender:
+          $ref: '#/components/schemas/User'
+        receiver:
+          $ref: '#/components/schemas/User'
+        content:
+          type: string
+          example: 'Hello, how can I help you today?'
+        isRead:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-05-27T20:36:00Z'
+    ChatMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          example: 'Hello, how can I help you today?'
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 200
+        message:
+          type: string
+          example: 'Operation successful'
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: 'An error occurred'
+        message:
+          type: string
+          example: 'Invalid request parameters'
+        statusCode:
+          type: integer
+          format: int32
+          example: 400
