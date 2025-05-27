@@ -38,6 +38,33 @@ class UserMemberShipController {
         }
     }
 
+    // Lấy danh sách đăng ký gói thành viên đang chờ thanh toán
+    async getPendingMemberships(req, res) {
+        try {
+            const pendingMemberships = await UserMemberShipService.getPendingMemberships(req.params.userId)
+            res.status(200).json({
+                success: true,
+                message: 'Pending memberships fetched successfully',
+                data: pendingMemberships
+            })
+        } catch (error) {
+            res.status(500).json({ message: error.message })
+        }
+    }
+
+    // Lấy lịch sử đăng ký gói thành viên
+    async getMembershipHistory(req, res) {
+        try {
+            const history = await UserMemberShipService.getMembershipHistory(req.params.userId)
+            res.status(200).json({
+                success: true,
+                message: 'Membership history fetched successfully',
+                data: history
+            })
+        } catch (error) {
+            res.status(500).json({ message: error.message })
+        }
+    }
 }
 
 module.exports = new UserMemberShipController()

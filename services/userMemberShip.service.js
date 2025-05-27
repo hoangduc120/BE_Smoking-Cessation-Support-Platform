@@ -66,6 +66,31 @@ class UserMemberShipService {
             throw new Error(error.message)
         }
     }
+    // Lấy thông tin đăng ký gói thành viên đang chờ thanh toán
+    async getPendingMemberships(userId) {
+        try {
+            const pendingMemberships = await UserMembership.find({
+                userId,
+                paymentStatus: 'pending'
+            }).populate('memberShipPlanId').select('-__v');
+
+            return pendingMemberships;
+        } catch (error) {
+            throw new Error(error.message);
+        }
+    }
+    // Lấy lịch sử đăng ký gói thành viên
+    async getMembershipHistory(userId) {
+        try {
+            const history = await UserMembership.find({
+                userId
+            }).populate('memberShipPlanId').sort({ createdAt: -1 }).select('-__v');
+
+            return history;
+        } catch (error) {
+            throw new Error(error.message);
+        }
+    }
 }
 
 module.exports = new UserMemberShipService()
