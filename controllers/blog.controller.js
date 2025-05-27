@@ -55,11 +55,6 @@ const getBlogsByTag = asyncHandler(async (req, res) => {
 
     const result = await blogService.getBlogsByTag(tagId, { page, limit, sortBy, sortOrder });
 
-    if (!result) {
-        res.status(404);
-        throw new Error('Tag not found');
-    }
-
     res.status(200).json({
         success: true,
         message: "Blogs with tag fetched successfully",
@@ -74,10 +69,6 @@ const updateBlog = asyncHandler(async (req, res) => {
     }
 
     const blog = await blogService.updateBlog(req.params.id, req.body, req.user._id);
-    if (!blog) {
-        res.status(404);
-        throw new Error('Blog not found or you are not authorized to update it')
-    }
     res.status(200).json({
         success: true,
         data: blog,
@@ -90,12 +81,8 @@ const deleteBlog = asyncHandler(async (req, res) => {
         res.status(401);
         throw new Error('User not authenticated');
     }
-
     const blog = await blogService.deleteBlog(req.params.id, req.user._id);
-    if (!blog) {
-        res.status(404);
-        throw new Error('Blog not found or you are not authorized to delete it')
-    }
+
     res.status(200).json({
         success: true,
         message: 'Blog deleted successfully'

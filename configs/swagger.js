@@ -1,6 +1,13 @@
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const path = require('path');
+const { merge } = require('lodash');
 
+// Đọc file swagger.yaml
+const swaggerYaml = YAML.load(path.join(__dirname, '../swagger.yaml'));
+
+// Cấu hình JSDoc để đọc các routes từ các file JS
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -34,12 +41,16 @@ const options = {
       },
     ],
   },
-  apis: ['./router/*.js'], // đường dẫn đến các route chứa comment Swagger
+  apis: ['./router/*.js'],
 };
 
-const swaggerSpec = swaggerJSDoc(options);
+// Tạo swagger spec từ JSDoc annotations
+const swaggerJsDocSpec = swaggerJSDoc(options);
+
+// Kết hợp cả hai nguồn
+const combinedSpec = merge({}, swaggerYaml, swaggerJsDocSpec);
 
 module.exports = {
   swaggerUi,
-  swaggerSpec,
+  swaggerSpec: combinedSpec,
 };
