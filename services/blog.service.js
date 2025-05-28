@@ -91,7 +91,7 @@ class BlogService {
             .populate({
                 path: "comments",
                 populate: {
-                    path: "user",
+                    path: "author",
                     select: "name email"
                 }
             })
