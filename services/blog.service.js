@@ -10,31 +10,25 @@ class BlogService {
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/(^-|-$)/g, '')
 
-        // Xử lý tags nếu có
         if (blogData.tags && blogData.tags.length > 0) {
             const processedTags = [];
 
             for (let tag of blogData.tags) {
-                // Xử lý tag có thể nhận vào cả dạng chuỗi (tagName) hoặc đối tượng {tagName}
                 let tagName = typeof tag === 'string' ? tag : tag.tagName;
 
-                // Loại bỏ dấu # nếu có
                 if (tagName.startsWith('#')) {
                     tagName = tagName.substring(1);
                 }
 
-                // Kiểm tra xem tag đã tồn tại chưa
                 let existingTag = await Tags.findOne({ tagName: { $regex: new RegExp(`^${tagName}$`, 'i') } });
 
                 if (!existingTag) {
-                    // Tạo mới tag nếu chưa tồn tại
                     existingTag = await Tags.create({
                         tagId: tagName.toLowerCase().replace(/\s+/g, '-'),
                         tagName: tagName,
                         blogCount: 1
                     });
                 } else {
-                    // Tăng số lượng blog cho tag
                     existingTag.blogCount += 1;
                     await existingTag.save();
                 }
@@ -103,7 +97,6 @@ class BlogService {
     }
 
     async getBlogsByTag(tagId, { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' }) {
-        // Tìm tag theo tagId
         const tag = await Tags.findOne({ tagId });
 
         if (!tag) {
@@ -149,9 +142,7 @@ class BlogService {
             throw new Error("Blog not found or you are not authorized to update it")
         }
 
-        // Xử lý tags nếu được cập nhật
         if (updateData.tags) {
-            // Giảm số lượng blog cho các tag cũ
             if (blog.tags && blog.tags.length > 0) {
                 for (let tagId of blog.tags) {
                     const tag = await Tags.findById(tagId);
@@ -162,31 +153,25 @@ class BlogService {
                 }
             }
 
-            // Xử lý tags mới
             if (updateData.tags.length > 0) {
                 const processedTags = [];
 
                 for (let tag of updateData.tags) {
-                    // Xử lý tag có thể nhận vào cả dạng chuỗi (tagName) hoặc đối tượng {tagName}
                     let tagName = typeof tag === 'string' ? tag : tag.tagName;
 
-                    // Loại bỏ dấu # nếu có
                     if (tagName.startsWith('#')) {
                         tagName = tagName.substring(1);
                     }
 
-                    // Kiểm tra xem tag đã tồn tại chưa
                     let existingTag = await Tags.findOne({ tagName: { $regex: new RegExp(`^${tagName}$`, 'i') } });
 
                     if (!existingTag) {
-                        // Tạo mới tag nếu chưa tồn tại
                         existingTag = await Tags.create({
                             tagId: tagName.toLowerCase().replace(/\s+/g, '-'),
                             tagName: tagName,
                             blogCount: 1
                         });
                     } else {
-                        // Tăng số lượng blog cho tag
                         existingTag.blogCount += 1;
                         await existingTag.save();
                     }
@@ -214,7 +199,6 @@ class BlogService {
             throw new Error("Blog not found or you are not authorized to delete it")
         }
 
-        // Giảm số lượng blog cho các tag
         if (blog.tags && blog.tags.length > 0) {
             for (let tagId of blog.tags) {
                 const tag = await Tags.findById(tagId);
@@ -242,23 +226,19 @@ class BlogService {
 
         if (!blog) return null;
 
-        // Chuyển đổi userId thành chuỗi để so sánh trực tiếp
         const userIdStr = userId.toString();
 
-        // Kiểm tra xem user đã like hoặc dislike chưa
         const isLiked = blog.likes.some(like => like.toString() === userIdStr);
         const isDisliked = blog.dislikes.some(dislike => dislike.toString() === userIdStr);
 
-        // Nếu đã dislike, xóa dislike trước
         if (isDisliked) {
             blog.dislikes = blog.dislikes.filter(dislike => dislike.toString() !== userIdStr);
         }
 
-        // Toggle like
         if (isLiked) {
-            blog.likes = blog.likes.filter(like => like.toString() !== userIdStr); // Bỏ like
+            blog.likes = blog.likes.filter(like => like.toString() !== userIdStr);
         } else {
-            blog.likes.push(userId); // Thêm like
+            blog.likes.push(userId);
         }
 
         return await blog.save();
