@@ -11,8 +11,8 @@ const { swaggerUi, swaggerSpec } = require("./configs/swagger"); // 🆕 Thêm s
 
 const app = express();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser()); // Must be before CORS and routes
 
 // CORS configuration
