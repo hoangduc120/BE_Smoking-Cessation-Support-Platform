@@ -21,7 +21,7 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
   const accessToken = await generateToken(
     { id: user._id, email: user.email, role: user.role },
     process.env.JWT_SECRET,
-    '20s'
+    '1d'
   );
   const refreshToken = await generateToken(
     { id: user._id },
