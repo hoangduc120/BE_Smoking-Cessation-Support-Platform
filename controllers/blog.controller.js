@@ -21,8 +21,8 @@ const createBlog = asyncHandler(async (req, res) => {
 })
 
 const getAllBlogs = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, tag, slug, sortBy, sortOrder } = req.query
-    const blogs = await blogService.getAllBlogs({ page, limit, tag, slug, sortBy, sortOrder })
+    const { page = 1, limit = 10, tag, slug, search, sortBy, sortOrder } = req.query
+    const blogs = await blogService.getAllBlogs({ page, limit, tag, slug, search, sortBy, sortOrder })
     res.status(200).json({
         success: true,
         message: "Blogs fetched successfully",

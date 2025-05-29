@@ -46,12 +46,29 @@ class BlogService {
         await blog.save()
         return blog
     }
-    async getAllBlogs({ page, limit, tag, slug, sortBy = 'createdAt', sortOrder = 'desc' }) {
+    async getAllBlogs({ page, limit, tag, slug, search, sortBy = 'createdAt', sortOrder = 'desc' }) {
         const query = { isDeleted: false, isHidden: false }
+
         if (tag) {
-            query.tags = tag;
+            const tagObj = await Tags.findOne({
+                $or: [
+                    { _id: mongoose.Types.ObjectId.isValid(tag) ? tag : null },
+                    { tagId: tag },
+                    { tagName: tag }
+                ]
+            });
+
+            if (tagObj) {
+                query.tags = tagObj._id;
+            }
         }
-        if (slug) {
+
+        if (search) {
+            query.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
+        } else if (slug) {
             query.slug = { $regex: slug, $options: 'i' };
         }
 
@@ -59,14 +76,18 @@ class BlogService {
         sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
         const blogs = await Blog.find(query)
+            .select('_id slug title description image tags createdAt user likes comments')
             .populate("user", "name email")
-            .populate("comments")
-            .populate("tags", "tagId tagName")
+            .populate({
+                path: "tags",
+                select: "tagId tagName"
+            })
             .skip((page - 1) * limit)
             .limit(Number(limit))
             .sort(sortOptions)
+            .lean();
 
-        const total = await Blog.countDocuments(query)
+        const total = await Blog.countDocuments(query);
 
         return {
             blogs,
@@ -218,30 +239,40 @@ class BlogService {
             return null;
         }
 
-        const blog = await Blog.findOne({
-            _id: id,
-            isDeleted: false,
-            isHidden: false
-        });
+        try {
+            const userIdStr = userId.toString();
+            const userHasLiked = await Blog.findOne({
+                _id: id,
+                likes: userIdStr,
+                isDeleted: false,
+                isHidden: false
+            }).select('_id').lean();
 
-        if (!blog) return null;
+            let updateOperation;
 
-        const userIdStr = userId.toString();
+            if (userHasLiked) {
+                // Nếu đã like, bỏ like
+                updateOperation = {
+                    $pull: { likes: userId }
+                };
+            } else {
+                // Nếu chưa like, thêm like
+                updateOperation = {
+                    $addToSet: { likes: userId }
+                };
+            }
 
-        const isLiked = blog.likes.some(like => like.toString() === userIdStr);
-        const isDisliked = blog.dislikes.some(dislike => dislike.toString() === userIdStr);
+            const updatedBlog = await Blog.findOneAndUpdate(
+                { _id: id, isDeleted: false, isHidden: false },
+                updateOperation,
+                { new: true }
+            ).select('_id likes');
 
-        if (isDisliked) {
-            blog.dislikes = blog.dislikes.filter(dislike => dislike.toString() !== userIdStr);
+            return updatedBlog;
+        } catch (error) {
+            console.error('Error in likeBlog:', error);
+            return null;
         }
-
-        if (isLiked) {
-            blog.likes = blog.likes.filter(like => like.toString() !== userIdStr);
-        } else {
-            blog.likes.push(userId);
-        }
-
-        return await blog.save();
     }
     async addComment(blogId, commentText, userId) {
         const blog = await Blog.findOne({
