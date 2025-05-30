@@ -95,7 +95,7 @@ class AuthController {
             setAuthCookies(res, newAccessToken, newRefreshToken);
             return OK(res, 'Token refreshed', { accessToken: newAccessToken });
         } catch (error) {
-            return BAD_REQUEST(res, error.message);d
+            return BAD_REQUEST(res, error.message);
         }
     });
 
@@ -131,6 +131,18 @@ class AuthController {
         } catch (error) {
             return BAD_REQUEST(res, error.message);
         }
+    });
+    getMe = catchAsync(async (req, res) => {
+        const userId = req.user._id;
+        const user = await authService.getMe(userId);
+        return OK(res, 'Get user successful', {
+            user: {
+                id: user._id,
+                email: user.email,
+                userName: user.userName,
+                role: user.role
+            }
+        });
     });
 }
 
