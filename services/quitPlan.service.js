@@ -1,81 +1,150 @@
 const QuitPlan = require('../models/quitPlan.model');
-const mongoose = require('mongoose');
-const badgeService = require('./badge.service');
-const QuitPlanStage = require("../models/quit_plan_stage.model");
+const QuitPlanStage = require("../models/quitPlanStage.model");
+const Badge = require('../models/badge.model');
 
-exports.createPlan = async ({ coachId, title, description, expectedQuitDate }) => {
-  return await QuitPlan.create({
-    coachId,
-    title,
-    description,
-    expectedQuitDate,
-    status: 'template'
-  });
-};
 
-exports.applyPlan = async (planId, userId) => {
-  const basePlan = await QuitPlan.findById(planId);
-  if (!basePlan || basePlan.status !== 'template') throw new Error('Invalid plan');
+class QuitPlanService {
+  async createQuitPlan(data) {
+    try {
+      const quitPlan = new QuitPlan(data);
+      await quitPlan.save();
+      return quitPlan;
+    } catch (error) {
+      throw new Error('Failed to create quit plan');
+    }
+  }
+  async getQuitPlans({ userId, coachId, status }) {
+    try {
+      const query = {};
+      if (userId) query.userId = userId;
+      if (coachId) query.coachId = coachId;
+      if (status) query.status = status;
 
-  return await QuitPlan.create({
-    coachId: basePlan.coachId,
-    userId,
-    title: basePlan.title,
-    description: basePlan.description,
-    expectedQuitDate: basePlan.expectedQuitDate,
-    status: 'pending'
-  });
-};
-
-exports.getCoachPlans = async (coachId) => {
-  return await QuitPlan.find({ coachId, userId: null });
-};
-
-exports.getPlanById = async (id) => {
-  return await QuitPlan.findById(id);
-};
-
-exports.updatePlan = async (id, data) => {
-  return await QuitPlan.findByIdAndUpdate(id, data, { new: true });
-};
-
-exports.deletePlan = async (id) => {
-  return await QuitPlan.findByIdAndDelete(id);
-};
-
-// ✅ Đánh dấu hoàn thành kế hoạch + tặng huy hiệu milestone
-exports.markPlanAsCompleted = async (planId, userId) => {
-  const plan = await QuitPlan.findOne({ _id: planId, userId });
-  if (!plan) throw new Error('Plan not found');
-
-  plan.status = "completed";
-  await plan.save();
-
-  // 🏅 Thưởng huy hiệu milestone
-  await badgeService.awardBadgeIfNeeded(userId, "milestone");
-
-  return plan;
-};
-
-// ✅ STAGE: Thêm stage vào kế hoạch
-exports.addStageToPlan = async (planId, stageData) => {
-  return await QuitPlanStage.create({
-    ...stageData,
-    quitPlanId: planId
-  });
-};
-
-// ✅ STAGE: Lấy danh sách stages theo kế hoạch
-exports.getStagesByPlan = async (planId) => {
-  return await QuitPlanStage.find({ quitPlanId: planId }).sort("order_index");
-};
-
-// ✅ STAGE: Cập nhật 1 stage
-exports.updateStage = async (stageId, data) => {
-  return await QuitPlanStage.findByIdAndUpdate(stageId, data, { new: true });
-};
-
-// ✅ STAGE: Xóa 1 stage
-exports.deleteStage = async (stageId) => {
-  return await QuitPlanStage.findByIdAndDelete(stageId);
-};
+      const quitPlans = await QuitPlan.find(query)
+        .populate('coachId', 'name email')
+        .populate('userId', 'name email')
+        .sort({ createdAt: -1 });
+      return quitPlans;
+    } catch (error) {
+      throw new Error('Failed to get quit plans');
+    }
+  }
+  async getQuitPlanById(id) {
+    try {
+      const quitPlan = await QuitPlan.findById(id)
+        .populate('coachId', 'name email')
+        .populate('userId', 'name email');
+      if (!quitPlan) {
+        throw new Error('Quit plan not found');
+      }
+      const badges = await Badge.find({ quitPlanId: id })
+        .populate('userId', 'name email')
+      return { quitPlan, badges };
+    } catch (error) {
+      throw new Error('Failed to get quit plan');
+    }
+  }
+  async updateQuitPlan(id, data) {
+    try {
+      const quitPlan = await QuitPlan.findByIdAndUpdate(
+        id,
+        { $set: data },
+        { new: true, runValidators: true }
+      )
+      if (!quitPlan) {
+        throw new Error('Quit plan not found');
+      }
+      return quitPlan;
+    } catch (error) {
+      throw new Error('Failed to update quit plan');
+    }
+  }
+  async deleteQuitPlan(id) {
+    try {
+      const quitPlan = await QuitPlan.findByIdAndDelete(id);
+      if (!quitPlan) {
+        throw new Error('Quit plan not found');
+      }
+      await QuitPlanStage.deleteMany({ quitPlanId: id });
+      await Badge.deleteMany({ quitPlanId: id });
+      return quitPlan;
+    } catch (error) {
+      throw new Error('Failed to delete quit plan');
+    }
+  }
+  async createQuitPlanStage(data) {
+    try {
+      const stage = new QuitPlanStage(data)
+      await stage.save();
+      return stage;
+    } catch (error) {
+      throw new Error('Failed to create quit plan stage');
+    }
+  }
+  async getQuitPlanStages(quitPlanId) {
+    try {
+      return await QuitPlanStage.find({ quitPlanId })
+        .sort({ order_index: 1 });
+    } catch (error) {
+      throw new Error('Failed to get quit plan stages');
+    }
+  }
+  async updateQuitPlanStage(id, data) {
+    try {
+      const stage = await QuitPlanStage.findByIdAndUpdate(
+        id,
+        { $set: data },
+        { new: true, runValidators: true }
+      )
+      if (!stage) {
+        throw new Error('Quit plan stage not found');
+      }
+      return stage;
+    } catch (error) {
+      throw new Error('Failed to update quit plan stage');
+    }
+  }
+  async deleteQuitPlanStage(id) {
+    try {
+      const stage = await QuitPlanStage.findByIdAndDelete(id);
+      if (!stage) {
+        throw new Error('Quit plan stage not found');
+      }
+      return stage;
+    } catch (error) {
+      throw new Error('Failed to delete quit plan stage');
+    }
+  }
+  async awardBadgeToQuitPlan(quitPlanId, badgeData) {
+    try {
+      const quitPlan = await QuitPlan.findById(quitPlanId);
+      if (!quitPlan) {
+        throw new Error('Quit plan not found');
+      }
+      const badge = new Badge({
+        ...badgeData,
+        quitPlanId,
+        userId: quitPlan.userId,
+        awardedAt: new Date(),
+      })
+      await badge.save();
+      return badge;
+    } catch (error) {
+      throw new Error('Failed to award badge to quit plan');
+    }
+  }
+  async getQuitPlanBadges(quitPlanId) {
+    try {
+      const quitPlan = await QuitPlan.findById(quitPlanId)
+      if (!quitPlan) {
+        throw new Error('Quit plan not found');
+      }
+      return await Badge.find({ quitPlanId })
+        .populate('userId', 'name email')
+        .sort({ awardedAt: -1 });
+    } catch (error) {
+      throw new Error('Failed to get quit plan badges');
+    }
+  }
+}
+module.exports = new QuitPlanService();

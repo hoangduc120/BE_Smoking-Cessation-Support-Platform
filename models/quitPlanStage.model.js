@@ -10,10 +10,21 @@ const quitPlanStageSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  description: String,
-  order_index: Number,
-  start_date: Date,
-  end_date: Date
+  description: {
+    type: String,
+  },
+  order_index: {
+    type: Number,
+    required: true,
+  },
+  start_date: {
+    type: Date,
+    required: true,
+  },
+  end_date: {
+    type: Date,
+    required: true,
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("QuitPlanStage", quitPlanStageSchema);

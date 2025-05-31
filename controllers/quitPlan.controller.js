@@ -1,77 +1,102 @@
 const catchAsync = require('../utils/catchAsync');
 const quitPlanService = require('../services/quitPlan.service');
-const { OK, CREATED } = require("../configs/response.config");
+const { OK, CREATED, BAD_REQUEST } = require("../configs/response.config");
 
-// ✅ Tạo kế hoạch mẫu
-exports.createPlan = catchAsync(async (req, res) => {
-  const coachId = req.id;
-  const data = await quitPlanService.createPlan({ ...req.body, coachId });
-  return CREATED(res, 'Plan created successfully', data);
-});
 
-// ✅ User apply kế hoạch mẫu
-exports.applyPlan = catchAsync(async (req, res) => {
-  const userId = req.id;
-  const { planId } = req.params;
-  const data = await quitPlanService.applyPlan(planId, userId);
-  return OK(res, 'Plan applied successfully', data);
-});
+class QuitPlanController {
+  async createQuitPlan(req, res) {
+    try {
+      const quitPlan = await quitPlanService.createQuitPlan(req.body);
+      return new OK(res, 'Quit plan created successfully', quitPlan);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async getQuitPlans(req, res) {
+    try {
+      const { userId, coachId, status } = req.query;
+      const quitPlans = await quitPlanService.getQuitPlans({
+        userId,
+        coachId,
+        status,
+      });
+      return new OK(res, 'Quit plans fetched successfully', quitPlans);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async getQuitPlan(req, res) {
+    try {
+      const { quitPlan, badges } = await quitPlanService.getQuitPlanById(req.params.id)
+      return new OK(res, 'Quit plan fetched successfully', { quitPlan, badges });
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async updateQuitPlan(req, res) {
+    try {
+      const quitPlan = await quitPlanService.updateQuitPlan(req.params.id, req.body)
+      return new OK(res, 'Quit plan updated successfully', quitPlan);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async deleteQuitPlan(req, res) {
+    try {
+      await quitPlanService.deleteQuitPlan(req.params.id);
+      return new OK(res, 'Quit plan deleted successfully');
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async createQuitPlanStage(req, res) {
+    try {
+      const stages = await quitPlanService.createQuitPlanStage(req.body);
+      return new OK(res, 'Quit plan stages created successfully', stages);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async getQuitPlanStages(req, res) {
+    try {
+      const stages = await quitPlanService.getQuitPlanStages(req.params.quitPlanId);
+      return new OK(res, 'Quit plan stages fetched successfully', stages);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async updateQuitPlanStage(req, res) {
+    try {
+      const stage = await quitPlanService.updateQuitPlanStage(req.params.id, req.body)
+      return new OK(res, 'Quit plan stage updated successfully', stage);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async deleteQuitPlanStage(req, res) {
+    try {
+      await quitPlanService.deleteQuitPlanStage(req.params.id);
+      return new OK(res, 'Quit plan stage deleted successfully');
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async awardBadgeToQuitPlan(req, res) {
+    try {
+      const badge = await quitPlanService.awardBadgeToQuitPlan(req.params.quitPlanId, req.body)
+      return new OK(res, 'Badge awarded to quit plan successfully', badge);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async getQuitPlanBadges(req, res) {
+    try {
+      const badges = await quitPlanService.getQuitPlanBadges(req.params.quitPlanId)
+      return new OK(res, 'Quit plan badges fetched successfully', badges);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+}
 
-// ✅ Lấy danh sách kế hoạch mẫu của coach
-exports.getCoachPlans = catchAsync(async (req, res) => {
-  const coachId = req.params.coachId;
-  const data = await quitPlanService.getCoachPlans(coachId);
-  return OK(res, 'Plans fetched', data);
-});
-
-// ✅ Lấy chi tiết kế hoạch
-exports.getPlan = catchAsync(async (req, res) => {
-  const data = await quitPlanService.getPlanById(req.params.id);
-  return OK(res, 'Plan fetched', data);
-});
-
-// ✅ Cập nhật kế hoạch mẫu
-exports.updatePlan = catchAsync(async (req, res) => {
-  const data = await quitPlanService.updatePlan(req.params.id, req.body);
-  return OK(res, 'Plan updated', data);
-});
-
-// ✅ Xoá kế hoạch
-exports.deletePlan = catchAsync(async (req, res) => {
-  const data = await quitPlanService.deletePlan(req.params.id);
-  return OK(res, 'Plan deleted', data);
-});
-
-// ✅ Hoàn thành kế hoạch + tặng huy hiệu
-exports.completePlan = catchAsync(async (req, res) => {
-  const userId = req.id;
-  const { planId } = req.params;
-  const plan = await quitPlanService.markPlanAsCompleted(planId, userId);
-  return OK(res, 'Plan completed and badge awarded!', { plan });
-});
-
-// ✅ Thêm stage vào plan
-exports.addStage = catchAsync(async (req, res) => {
-  const { planId } = req.params;
-  const stage = await quitPlanService.addStageToPlan(planId, req.body);
-  return CREATED(res, "Stage added successfully", stage);
-});
-
-// ✅ Lấy stage theo plan
-exports.getStages = catchAsync(async (req, res) => {
-  const { planId } = req.params;
-  const stages = await quitPlanService.getStagesByPlan(planId);
-  return OK(res, "Stages fetched", stages);
-});
-
-// ✅ Cập nhật 1 stage
-exports.updateStage = catchAsync(async (req, res) => {
-  const stage = await quitPlanService.updateStage(req.params.stageId, req.body);
-  return OK(res, "Stage updated", stage);
-});
-
-// ✅ Xoá 1 stage
-exports.deleteStage = catchAsync(async (req, res) => {
-  const stage = await quitPlanService.deleteStage(req.params.stageId);
-  return OK(res, "Stage deleted", stage);
-});
+module.exports = new QuitPlanController();
