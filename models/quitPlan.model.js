@@ -16,7 +16,7 @@ var quitplanSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  description: {
+  reason: {
     type: String,
     required: true,
   },

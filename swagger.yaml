@@ -6,7 +6,7 @@ servers:
 info:
   version: "1.0.0"
   title: QuitSmoke API
-  description: API for user authentication, blog management, user profile management, survey management, membership plan management, user membership management, payment processing, and chat messaging, developed by Hoàng Đức.
+  description: API for managing user authentication, blogs, profiles, surveys, memberships, payments, chat, and quit plans, developed by Hoàng Đức.
   contact:
     name: Hoàng Đức
     email: hoangduc@example.com
@@ -140,12 +140,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /auth/forgot-password:
-    get:
+    post:
       tags:
         - Auth
       summary: Request password reset
       description: Initiates the password reset process by sending a reset link.
       operationId: forgotPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+        required: true
       responses:
         '200':
           description: Password reset link sent
@@ -190,8 +196,21 @@ paths:
       tags:
         - Blog
       summary: Get all blogs
-      description: Retrieves a list of all blogs.
+      description: Retrieves a list of all blogs with optional pagination.
       operationId: getAllBlogs
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of blogs per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of blogs
@@ -236,6 +255,12 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
           content:
             application/json:
               schema:
@@ -491,6 +516,19 @@ paths:
       operationId: getAllUsers
       security:
         - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of users per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of users
@@ -526,6 +564,18 @@ paths:
           schema:
             type: string
             example: 'john'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of users per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of matching users
@@ -568,10 +618,17 @@ paths:
       tags:
         - User
       summary: Get user profile
-      description: Retrieves the profile of a specific user.
+      description: Retrieves the profile of a specific user by query parameter.
       operationId: getProfile
       security:
         - BearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          description: ID of the user to retrieve
+          schema:
+            type: string
+            example: '12345'
       responses:
         '200':
           description: User profile
@@ -581,6 +638,12 @@ paths:
                 $ref: '#/components/schemas/User'
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
           content:
             application/json:
               schema:
@@ -688,40 +751,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /users/update-profile:
-    put:
-      tags:
-        - User
-      summary: Update user information
-      description: Updates user information such as name or email.
-      operationId: updateUserInfo
-      security:
-        - BearerAuth: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserUpdateRequest'
-        required: true
-      responses:
-        '200':
-          description: User information updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '400':
-          description: Invalid request data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /users/change-password:
     put:
       tags:
@@ -761,7 +790,7 @@ paths:
       tags:
         - User
       summary: Update user avatar
-      description: Updates the avatar of the authenticated user.
+      description: Updates the avatar of the authenticated user using Cloudinary.
       operationId: updateAvatar
       security:
         - BearerAuth: []
@@ -774,74 +803,6 @@ paths:
       responses:
         '200':
           description: Avatar updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '400':
-          description: Invalid file
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /users/upload-avatar:
-    put:
-      tags:
-        - User
-      summary: Upload user avatar
-      description: Uploads a new avatar for the authenticated user using Cloudinary.
-      operationId: uploadAvatar
-      security:
-        - BearerAuth: []
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AvatarUploadRequest'
-        required: true
-      responses:
-        '200':
-          description: Avatar uploaded successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '400':
-          description: Invalid file
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /users/upload-avatar-manual:
-    put:
-      tags:
-        - User
-      summary: Manually upload user avatar
-      description: Manually uploads a new avatar for the authenticated user.
-      operationId: uploadAvatarManual
-      security:
-        - BearerAuth: []
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AvatarUploadRequest'
-        required: true
-      responses:
-        '200':
-          description: Avatar uploaded successfully
           content:
             application/json:
               schema:
@@ -944,6 +905,18 @@ paths:
           schema:
             type: string
             example: '12345'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of followers per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of followers
@@ -981,6 +954,18 @@ paths:
           schema:
             type: string
             example: '12345'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of followed users per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of followed users
@@ -1011,6 +996,19 @@ paths:
       operationId: getMyFollowers
       security:
         - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of followers per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of followers
@@ -1035,6 +1033,19 @@ paths:
       operationId: getMyFollowing
       security:
         - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of followed users per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of followed users
@@ -1059,6 +1070,19 @@ paths:
       operationId: getAllSurveys
       security:
         - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of surveys per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of surveys
@@ -1128,6 +1152,19 @@ paths:
       operationId: getSurveysByUserIdMe
       security:
         - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of surveys per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of surveys by user
@@ -1165,6 +1202,18 @@ paths:
           schema:
             type: string
             example: '12345'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of surveys per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of surveys by user
@@ -1320,6 +1369,19 @@ paths:
       summary: Get all membership plans
       description: Retrieves a list of all membership plans.
       operationId: getAllPackages
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of plans per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of membership plans
@@ -1654,6 +1716,18 @@ paths:
           schema:
             type: string
             example: '12345'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of memberships per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: Membership history
@@ -1799,6 +1873,19 @@ paths:
       operationId: getUsersForSidebar
       security:
         - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of users per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of users
@@ -1823,6 +1910,19 @@ paths:
       operationId: getConversations
       security:
         - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of conversations per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of conversations
@@ -1880,6 +1980,18 @@ paths:
           schema:
             type: string
             example: '12345'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of messages per page
+          schema:
+            type: integer
+            example: 10
       responses:
         '200':
           description: List of messages
@@ -2011,6 +2123,535 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /quitplans:
+    get:
+      tags:
+        - QuitPlan
+      summary: Get quit plans
+      description: Retrieves a list of quit plans based on query parameters (userId, coachId, status).
+      operationId: getQuitPlans
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+            example: '12345'
+        - name: coachId
+          in: query
+          description: Filter by coach ID
+          schema:
+            type: string
+            example: '67890'
+        - name: status
+          in: query
+          description: Filter by quit plan status
+          schema:
+            type: string
+            enum:
+              - template
+              - pending
+              - ongoing
+              - completed
+              - failed
+            example: 'ongoing'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of quit plans per page
+          schema:
+            type: integer
+            example: 10
+      responses:
+        '200':
+          description: List of quit plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuitPlan'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - QuitPlan
+      summary: Create a new quit plan
+      description: Creates a new quit plan (requires user or coach role).
+      operationId: createQuitPlan
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuitPlanCreateRequest'
+        required: true
+      responses:
+        '200':
+          description: Quit plan created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuitPlan'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitplans/{id}:
+    get:
+      tags:
+        - QuitPlan
+      summary: Get quit plan by ID
+      description: Retrieves a quit plan and its associated badges by ID.
+      operationId: getQuitPlanById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Quit plan and badges
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quitPlan:
+                    $ref: '#/components/schemas/QuitPlan'
+                  badges:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Badge'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - QuitPlan
+      summary: Update a quit plan
+      description: Updates an existing quit plan (requires user or coach role).
+      operationId: updateQuitPlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuitPlanUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: Quit plan updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuitPlan'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - QuitPlan
+      summary: Delete a quit plan
+      description: Deletes a quit plan and its associated stages and badges (requires coach or admin role).
+      operationId: deleteQuitPlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Quit plan deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitplans/{quitPlanId}/stages:
+    get:
+      tags:
+        - QuitPlanStage
+      summary: Get quit plan stages
+      description: Retrieves all stages for a specific quit plan.
+      operationId: getQuitPlanStages
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: quitPlanId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of stages per page
+          schema:
+            type: integer
+            example: 10
+      responses:
+        '200':
+          description: List of quit plan stages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuitPlanStage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - QuitPlanStage
+      summary: Create a new quit plan stage
+      description: Creates a new stage for a quit plan (requires coach role).
+      operationId: createQuitPlanStage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: quitPlanId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuitPlanStageCreateRequest'
+        required: true
+      responses:
+        '200':
+          description: Quit plan stage created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuitPlanStage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitplan-stages/{id}:
+    put:
+      tags:
+        - QuitPlanStage
+      summary: Update a quit plan stage
+      description: Updates an existing quit plan stage (requires coach role).
+      operationId: updateQuitPlanStage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'stage-12345'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuitPlanStageUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: Quit plan stage updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuitPlanStage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan stage not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - QuitPlanStage
+      summary: Delete a quit plan stage
+      description: Deletes a quit plan stage (requires coach or admin role).
+      operationId: deleteQuitPlanStage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'stage-12345'
+      responses:
+        '200':
+          description: Quit plan stage deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan stage not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitplans/{quitPlanId}/badges:
+    get:
+      tags:
+        - Badge
+      summary: Get quit plan badges
+      description: Retrieves all badges for a specific quit plan.
+      operationId: getQuitPlanBadges
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: quitPlanId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of badges per page
+          schema:
+            type: integer
+            example: 10
+      responses:
+        '200':
+          description: List of badges
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Badge'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Badge
+      summary: Award a badge to a quit plan
+      description: Awards a badge to a quit plan user (requires coach role).
+      operationId: awardBadge
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: quitPlanId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BadgeCreateRequest'
+        required: true
+      responses:
+        '200':
+          description: Badge awarded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadgeResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     BearerAuth:
@@ -2045,9 +2686,9 @@ components:
         password:
           type: string
           example: 'password123'
-        username:
+        name:
           type: string
-          example: 'john_doe'
+          example: 'John Doe'
         role:
           type: string
           enum:
@@ -2063,6 +2704,15 @@ components:
         refreshToken:
           type: string
           example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'user@example.com'
     ResetPasswordRequest:
       type: object
       required:
@@ -2080,21 +2730,21 @@ components:
       properties:
         accessToken:
           type: string
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6...'
         refreshToken:
           type: string
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6example'
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6...'
         user:
-          $ref: '#/components/schemas/User'
-    User:
+          $ref: '#/components/schemas/UserProfile'
+    UserProfile:
       type: object
       properties:
         id:
           type: string
           example: '12345'
-        username:
+        name:
           type: string
-          example: 'john_doe'
+          example: 'John Doe'
         email:
           type: string
           format: email
@@ -2110,6 +2760,10 @@ components:
           type: string
           format: uri
           example: 'https://res.cloudinary.com/example/avatar.jpg'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-05-10T00:00:00Z'
     Blog:
       type: object
       properties:
@@ -2131,15 +2785,22 @@ components:
             type: string
             example: 'motivation'
         author:
-          $ref: '#/components/schemas/User'
+          $ref: '#/components/schemas/UserProfile'
         likes:
-          type: array
-          items:
-            $ref: '#/components/schemas/User'
+          type: integer
+          example: 50
         comments:
           type: array
           items:
             $ref: '#/components/schemas/Comment'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-05-20T00:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-05-21T00:00:00Z'
     BlogCreateRequest:
       type: object
       required:
@@ -2171,14 +2832,6 @@ components:
           items:
             type: string
             example: 'motivation'
-    CommentRequest:
-      type: object
-      required:
-        - content
-      properties:
-        content:
-          type: string
-          example: 'Great blog post!'
     Comment:
       type: object
       properties:
@@ -2189,17 +2842,25 @@ components:
           type: string
           example: 'Great blog post!'
         author:
-          $ref: '#/components/schemas/User'
+          $ref: '#/components/schemas/UserProfile'
         createdAt:
           type: string
           format: date-time
-          example: '2025-05-27T20:36:00Z'
+          example: '2025-05-20T00:00:00Z'
+    CommentRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          example: 'Great blog post!'
     UserUpdateRequest:
       type: object
       properties:
-        username:
+        name:
           type: string
-          example: 'john_doe_updated'
+          example: 'John Doe Updated'
         email:
           type: string
           format: email
@@ -2234,13 +2895,16 @@ components:
         followingCount:
           type: integer
           example: 20
+        quitPlanCount:
+          type: integer
+          example: 5
     Survey:
       type: object
       properties:
         id:
           type: string
-          example: '67890'
-        title:
+          example: 'su-67890'
+        summary:
           type: string
           example: 'Smoking Habits Survey'
         description:
@@ -2249,36 +2913,42 @@ components:
         questions:
           type: array
           items:
-            type: object
-            properties:
-              questionText:
-                type: string
-                example: 'How many cigarettes do you smoke daily?'
-              answerType:
-                type: string
-                enum:
-                  - text
-                  - multiple-choice
-                  - number
-                example: 'number'
-              options:
-                type: array
-                items:
-                  type: string
-                  example: '0-5'
+            $ref: '#/components/schemas/Questionnaire'
         author:
-          $ref: '#/components/schemas/User'
+          $ref: '#/components/schemas/UserProfile'
         createdAt:
           type: string
           format: date-time
-          example: '2025-05-27T20:36:00Z'
+          example: '2025-05-20T00:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-05-21T00:00:00Z'
+    Questionnaire:
+      type: object
+      properties:
+        questionText:
+          type: string
+          example: 'How many cigarettes do you smoke daily?'
+        type:
+          type: string
+          enum:
+            - text
+            - multiple-choice
+            - number
+          example: 'number'
+        options:
+          type: array
+          items:
+            type: string
+            example: '0-5'
     SurveyCreateRequest:
       type: object
       required:
-        - title
+        - name
         - questions
       properties:
-        title:
+        name:
           type: string
           example: 'Smoking Habits Survey'
         description:
@@ -2287,27 +2957,11 @@ components:
         questions:
           type: array
           items:
-            type: object
-            properties:
-              questionText:
-                type: string
-                example: 'How many cigarettes do you smoke daily?'
-              answerType:
-                type: string
-                enum:
-                  - text
-                  - multiple-choice
-                  - number
-                example: 'number'
-              options:
-                type: array
-                items:
-                  type: string
-                  example: '0-5'
+            $ref: '#/components/schemas/SurveyQuestion'
     SurveyUpdateRequest:
-      type: object
+      type: []
       properties:
-        title:
+        name:
           type: string
           example: 'Updated Smoking Habits Survey'
         description:
@@ -2316,36 +2970,38 @@ components:
         questions:
           type: array
           items:
-            type: object
-            properties:
-              questionText:
-                type: string
-                example: 'How many cigarettes do you smoke daily?'
-              answerType:
-                type: string
-                enum:
-                  - text
-                  - multiple-choice
-                  - number
-                example: 'number'
-              options:
-                type: array
-                items:
-                  type: string
-                  example: '0-5'
+            $ref: '#/components/schemas/SurveyQuestion'
+    SurveyQuestion:
+      type: object
+      properties:
+        questionText:
+          type: string
+          example: 'How many cigarettes do you smoke daily?'
+        type:
+          type: string
+          enum:
+            - text
+            - multiple-choice
+            - number
+          example: 'number'
+        options:
+          type: array
+          items:
+            type: string
+            example: '0-5'
     MembershipPlan:
       type: object
       properties:
         id:
           type: string
-          example: 'plan-001'
+          example: 'plan-12345'
         name:
           type: string
-          example: 'Premium Plan'
+          example: 'Prime Plan'
         description:
           type: string
-          example: 'Access to premium features for quitting smoking.'
-        price:
+          example: 'Access to prime features for quitting smoking.'
+        cost:
           type: number
           format: float
           example: 9.99
@@ -2360,21 +3016,25 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: '2025-05-27T20:36:00Z'
+          example: '2025-05-20T00:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-05-21T00:00:00Z'
     MembershipPlanCreateRequest:
       type: object
       required:
         - name
-        - price
+        - cost
         - duration
       properties:
         name:
           type: string
-          example: 'Premium Plan'
+          example: 'Prime Plan'
         description:
           type: string
-          example: 'Access to premium features for quitting smoking.'
-        price:
+          example: 'Access to prime features for quitting smoking.'
+        cost:
           type: number
           format: float
           example: 9.99
@@ -2391,11 +3051,11 @@ components:
       properties:
         name:
           type: string
-          example: 'Updated Premium Plan'
+          example: 'Updated Prime Plan'
         description:
           type: string
-          example: 'Updated access to premium features.'
-        price:
+          example: 'Updated access to prime features.'
+        cost:
           type: number
           format: float
           example: 12.99
@@ -2406,17 +3066,19 @@ components:
           type: array
           items:
             type: string
-            example: 'Personalized coaching'
+            example: 'Advanced coaching'
     UserMembership:
       type: object
       properties:
         id:
           type: string
           example: 'mem-12345'
-        user:
-          $ref: '#/components/schemas/User'
-        membershipPlan:
-          $ref: '#/components/schemas/MembershipPlan'
+        userId:
+          type: string
+          example: '12345'
+        membershipPlanId:
+          type: string
+          example: 'plan-12345'
         status:
           type: string
           enum:
@@ -2437,6 +3099,10 @@ components:
           type: string
           format: date-time
           example: '2025-05-20T00:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-05-21T00:00:00Z'
     UserMembershipRegisterRequest:
       type: object
       required:
@@ -2444,7 +3110,7 @@ components:
       properties:
         membershipPlanId:
           type: string
-          example: 'plan-001'
+          example: 'plan-12345'
     PaymentCreateRequest:
       type: object
       required:
@@ -2458,6 +3124,39 @@ components:
           type: number
           format: float
           example: 9.99
+        currency:
+          type: string
+          example: 'USD'
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'msg-12345'
+        senderId:
+          type: string
+          example: '12345'
+        receiverId:
+          type: string
+          example: '67890'
+        content:
+          type: string
+          example: 'Hey, how’s your quit plan going?'
+        isRead:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-05-20T00:00:00Z'
+    ChatMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          example: 'Hey, how’s your quit plan going?'
     Conversation:
       type: object
       properties:
@@ -2467,61 +3166,284 @@ components:
         participants:
           type: array
           items:
-            $ref: '#/components/schemas/User'
+            $ref: '#/components/schemas/UserProfile'
         lastMessage:
           $ref: '#/components/schemas/ChatMessage'
         updatedAt:
           type: string
           format: date-time
-          example: '2025-05-27T20:36:00Z'
-    ChatMessage:
+          example: '2025-05-20T00:00:00Z'
+    BadgeResponse:
       type: object
       properties:
-        id:
-          type: string
-          example: 'msg-12345'
-        sender:
-          $ref: '#/components/schemas/User'
-        receiver:
-          $ref: '#/components/schemas/User'
-        content:
-          type: string
-          example: 'Hello, how can I help you today?'
-        isRead:
-          type: boolean
-          example: false
-        createdAt:
-          type: string
-          format: date-time
-          example: '2025-05-27T20:36:00Z'
-    ChatMessageRequest:
-      type: object
-      required:
-        - content
-      properties:
-        content:
-          type: string
-          example: 'Hello, how can I help you today?'
-    ApiResponse:
-      type: object
-      properties:
-        code:
-          type: integer
-          format: int32
-          example: 200
         message:
           type: string
-          example: 'Operation successful'
+          example: 'Badge awarded successfully'
+        badge:
+          $ref: '#/components/schemas/Badge'
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-          example: 'An error occurred'
+          example: 'Invalid request'
         message:
           type: string
-          example: 'Invalid request parameters'
-        statusCode:
-          type: integer
-          format: int32
-          example: 400
+          example: 'The request contains invalid data.'
+    ApiResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'Operation successful'
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '12345'
+        name:
+          type: string
+          example: 'John Doe'
+        email:
+          type: string
+          format: email
+          example: 'user@example.com'
+        role:
+          type: string
+          enum:
+            - user
+            - coach
+            - admin
+          example: 'user'
+        avatar:
+          type: string
+          format: uri
+          example: 'https://res.cloudinary.com/example/avatar.jpg'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-05-10T00:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-05-11T00:00:00Z'
+    QuitPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'plan123'
+        userId:
+          type: string
+          example: '12345'
+        title:
+          type: string
+          example: 'My Quit Smoking Plan'
+        description:
+          type: string
+          example: 'A personalized plan to quit smoking'
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - completed
+            - cancelled
+          example: active
+        startDate:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00Z'
+        endDate:
+          type: string
+          format: date-time
+          example: '2025-06-01T00:00:00Z'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-01-02T00:00:00Z'
+    QuitPlanCreateRequest:
+      type: object
+      required:
+        - title
+        - description
+        - startDate
+      properties:
+        title:
+          type: string
+          example: 'My Quit Smoking Plan'
+        description:
+          type: string
+          example: 'A personalized plan to quit smoking'
+        startDate:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00Z'
+        endDate:
+          type: string
+          format: date-time
+          example: '2025-06-01T00:00:00Z'
+    QuitPlanUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: 'Updated Quit Smoking Plan'
+        description:
+          type: string
+          example: 'Updated personalized plan to quit smoking'
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - completed
+            - cancelled
+          example: active
+        startDate:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00Z'
+        endDate:
+          type: string
+          format: date-time
+          example: '2025-06-01T00:00:00Z'
+    QuitPlanStage:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'stage123'
+        quitPlanId:
+          type: string
+          example: 'plan123'
+        title:
+          type: string
+          example: 'Week 1: Reduce Smoking'
+        description:
+          type: string
+          example: 'Reduce cigarette intake by 50%'
+        startDate:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00Z'
+        endDate:
+          type: string
+          format: date-time
+          example: '2025-01-07T00:00:00Z'
+        status:
+          type: string
+          enum:
+            - pending
+            - in-progress
+            - completed
+            - failed
+          example: in-progress
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-01-02T00:00:00Z'
+    QuitPlanStageCreateRequest:
+      type: object
+      required:
+        - title
+        - description
+        - startDate
+        - endDate
+      properties:
+        title:
+          type: string
+          example: 'Week 1: Reduce Smoking'
+        description:
+          type: string
+          example: 'Reduce cigarette intake by 50%'
+        startDate:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00Z'
+        endDate:
+          type: string
+          format: date-time
+          example: '2025-01-07T00:00:00Z'
+    QuitPlanStageUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: 'Updated Week 1: Reduce Smoking'
+        description:
+          type: string
+          example: 'Updated: Reduce cigarette intake by 60%'
+        startDate:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00Z'
+        endDate:
+          type: string
+          format: date-time
+          example: '2025-01-07T00:00:00Z'
+        status:
+          type: string
+          enum:
+            - pending
+            - in-progress
+            - completed
+            - failed
+          example: completed
+    Badge:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'badge123'
+        quitPlanId:
+          type: string
+          example: 'plan123'
+        userId:
+          type: string
+          example: '12345'
+        name:
+          type: string
+          example: '7 Days Smoke-Free'
+        description:
+          type: string
+          example: 'Awarded for completing 7 days without smoking'
+        imageUrl:
+          type: string
+          format: uri
+          example: 'https://example.com/badges/7days.png'
+        awardedAt:
+          type: string
+          format: date-time
+          example: '2025-01-08T00:00:00Z'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-01-08T00:00:00Z'
+    BadgeCreateRequest:
+      type: object
+      required:
+        - name
+        - description
+        - imageUrl
+      properties:
+        name:
+          type: string
+          example: '7 Days Smoke-Free'
+        description:
+          type: string
+          example: 'Awarded for completing 7 days without smoking'
+        imageUrl:
+          type: string
+          format: uri
+          example: 'https://example.com/badges/7days.png'
+    
