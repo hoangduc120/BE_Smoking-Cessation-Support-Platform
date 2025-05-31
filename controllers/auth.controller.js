@@ -95,7 +95,7 @@ class AuthController {
             setAuthCookies(res, newAccessToken, newRefreshToken);
             return OK(res, 'Token refreshed', { accessToken: newAccessToken });
         } catch (error) {
-            return BAD_REQUEST(res, error.message);d
+            return BAD_REQUEST(res, error.message);
         }
     });
 
