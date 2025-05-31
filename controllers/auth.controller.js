@@ -132,18 +132,6 @@ class AuthController {
             return BAD_REQUEST(res, error.message);
         }
     });
-    getMe = catchAsync(async (req, res) => {
-        const userId = req.user._id;
-        const user = await authService.getMe(userId);
-        return OK(res, 'Get user successful', {
-            user: {
-                id: user._id,
-                email: user.email,
-                userName: user.userName,
-                role: user.role
-            }
-        });
-    });
 }
 
 module.exports = new AuthController();

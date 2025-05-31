@@ -172,16 +172,6 @@ class AuthService {
       message: "Password reset successful"
     };
   }
-  async getMe(userId) {
-    const user = await User.findById(userId).select('-password -refreshToken');
-    if (!user) {
-      throw new ErrorWithStatus({
-        status: StatusCodes.NOT_FOUND,
-        message: 'User not found',
-      });
-    }
-    return user;
-  }
 }
 
 module.exports = new AuthService();

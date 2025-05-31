@@ -48,7 +48,8 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    return res.redirect('http://localhost:5173?auth=google');
+
+    return res.redirect(`http://localhost:5173?accessToken=${accessToken}`);
   } catch (error) {
     next(error);
   }
@@ -57,6 +58,5 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
 router.get('/forgot-password', authController.forgotPassword)
 router.put('/reset-password', authController.resetPassword)
 
-router.get('/me', authMiddleware, authController.getMe);
 
 module.exports = router;
