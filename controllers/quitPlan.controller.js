@@ -97,6 +97,54 @@ class QuitPlanController {
       return new BAD_REQUEST(res, error.message);
     }
   }
+  async selectQuitPlan(req, res) {
+    try {
+      const { userId } = req.user;
+      const { quitPlanId } = req.body
+      const plan = await quitPlanService.selectQuitPlan(userId, quitPlanId)
+      return new OK(res, 'Quit plan selected successfully', plan);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async getUserCurrentPlan(req, res) {
+    try {
+      const { userId } = req.user;
+      const data = await quitPlanService.getUserCurrentPlan(userId)
+      return new OK(res, 'User current plan fetched successfully', data);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async completeStage(req, res) {
+    try {
+      const { userId } = req.user
+      const { stageId } = req.params
+      const stage = await quitPlanService.completeStage(stageId, userId)
+      return new OK(res, 'Stage completed successfully', stage);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async failQuitPlan(req, res) {
+    try {
+      const { userId } = req.user
+      const { planId } = req.params
+      const plan = await quitPlanService.failQuitPlan(planId, userId)
+      return new OK(res, 'Quit plan failed successfully', plan);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
+  async getTemplatePlans(req, res) {
+    try {
+      const { coachId } = req.query
+      const plans = await quitPlanService.getTemplatePlans(coachId)
+      return new OK(res, 'Template plans fetched successfully', plans);
+    } catch (error) {
+      return new BAD_REQUEST(res, error.message);
+    }
+  }
 }
 
 module.exports = new QuitPlanController();

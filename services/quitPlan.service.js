@@ -1,6 +1,7 @@
 const QuitPlan = require('../models/quitPlan.model');
 const QuitPlanStage = require("../models/quitPlanStage.model");
 const Badge = require('../models/badge.model');
+const QuitProgress = require('../models/quitProgress.model');
 
 
 class QuitPlanService {
@@ -144,6 +145,110 @@ class QuitPlanService {
         .sort({ awardedAt: -1 });
     } catch (error) {
       throw new Error('Failed to get quit plan badges');
+    }
+  }
+  async selectQuitPlan(userId, quitPlanId) {
+    try {
+      const exisingPlan = await QuitPlan.findOne({ userId, status: "ongoing" });
+      if (exisingPlan) {
+        throw new Error('User already has an ongoing quit plan');
+      }
+      const templatePlan = await QuitPlan.findById(quitPlanId);
+      if (!templatePlan || templatePlan.status !== "template") {
+        throw new Error('Invalid quit plan template');
+      }
+      const newPlan = new QuitPlan({
+        ...templatePlan.toObject(),
+        userId,
+        status: "ongoing",
+        _id: undefined,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      await newPlan.save();
+
+      const stages = await QuitPlanStage.find({ quitPlanId })
+      const newStages = stages.map(stage => ({
+        ...stage.toObject(),
+        quitPlanId: newPlan._id,
+        _id: undefined,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }))
+      await QuitPlanStage.insertMany(newStages);
+
+      return newPlan;
+    } catch (error) {
+      throw new Error('Failed to select quit plan');
+    }
+  }
+  async getUserCurrentPlan(userId) {
+    try {
+      const plan = await QuitPlan.findOne({ userId, status: "ongoing" })
+        .populate('coachId', 'name email')
+        .populate('userId', 'name email');
+      if (!plan) {
+        return null
+      }
+
+      const stages = await QuitPlanStage.find({ quitPlanId: plan._id })
+        .sort({ order_index: 1 });
+      const progress = await QuitProgress.find({ userId, stageId: { $in: stages.map(s => s._id) } })
+      return { plan, stages, progress };
+    } catch (error) {
+      throw new Error('Failed to get user current plan');
+    }
+  }
+  async completeStage(stageId, userId) {
+    try {
+      const stage = await QuitPlanStage.findById(stageId);
+      if (!stage) {
+        throw new Error('Stage not found');
+      }
+      const plan = await QuitPlan.findOne({ _id: stage.quitPlanId, userId, status: "ongoing" });
+      if (!plan) {
+        throw new Error('Quit plan not found');
+      }
+      stage.completed = true;
+      await stage.save();
+
+      const allStages = await QuitPlanStage.find({ quitPlanId: plan._id });
+      const allCompleted = allStages.every(s => s.completed);
+      if (allCompleted) {
+        plan.status = "completed";
+        await plan.save();
+      }
+
+      await this.awardBadgeToQuitPlan(plan._id, {
+        name: "Stage Completed",
+        description: `Completed ${plan.title}`,
+        icon_url: stage.icon_url,
+      })
+      return { success: true, message: "Stage completed successfully" };
+    } catch (error) {
+      throw new Error('Failed to complete stage');
+    }
+  }
+  async failQuitPlan(planId, userId) {
+    try {
+      const plan = await QuitPlan.findOne({ _id: planId, userId, status: "ongoing" });
+      if (!plan) {
+        throw new Error('Quit plan not found');
+      }
+      plan.status = "failed";
+      await plan.save();
+      return plan
+    } catch (error) {
+      throw new Error('Failed to fail quit plan');
+    }
+  }
+  async getTemplatePlans(coachId) {
+    try {
+      return await QuitPlan.find({ coachId, status: "template" })
+        .populate('coachId', 'name email')
+        .sort({ createdAt: -1 });
+    } catch (error) {
+      throw new Error('Failed to get template plans');
     }
   }
 }

@@ -1,4 +1,3 @@
-
 openapi: 3.0.0
 servers:
   - description: QuitSmoke API
@@ -2652,6 +2651,206 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /quitplans/select:
+    post:
+      tags:
+        - QuitPlan
+      summary: Select a template quit plan
+      description: Allows a user to select and activate a template quit plan created by a coach.
+      operationId: selectQuitPlan
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quitPlanId
+              properties:
+                quitPlanId:
+                  type: string
+                  example: 'template-plan-123'
+                  description: 'ID of the template plan to select'
+        required: true
+      responses:
+        '200':
+          description: Quit plan selected successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuitPlan'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: User already has an ongoing quit plan or invalid template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitplans/current:
+    get:
+      tags:
+        - QuitPlan
+      summary: Get current quit plan
+      description: Retrieves the current ongoing quit plan for the authenticated user.
+      operationId: getUserCurrentPlan
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current quit plan with stages and progress
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plan:
+                    $ref: '#/components/schemas/QuitPlan'
+                  stages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QuitPlanStage'
+                  progress:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QuitProgress'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No ongoing quit plan found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitplan-stages/{id}/complete:
+    put:
+      tags:
+        - QuitPlanStage
+      summary: Complete a quit plan stage
+      description: Marks a quit plan stage as completed for the user.
+      operationId: completeStage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'stage-12345'
+      responses:
+        '200':
+          description: Stage completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Stage completed successfully'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stage or quit plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitplans/{id}/fail:
+    put:
+      tags:
+        - QuitPlan
+      summary: Mark quit plan as failed
+      description: Allows a user to mark their ongoing quit plan as failed.
+      operationId: failQuitPlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Quit plan marked as failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuitPlan'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan not found or not ongoing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitplans/template:
+    get:
+      tags:
+        - QuitPlan
+      summary: Get template plans
+      description: Retrieves template quit plans created by coaches.
+      operationId: getTemplatePlans
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: coachId
+          in: query
+          description: Filter by coach ID
+          schema:
+            type: string
+            example: '67890'
+      responses:
+        '200':
+          description: List of template plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuitPlan'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - requires coach role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     BearerAuth:
@@ -2959,7 +3158,7 @@ components:
           items:
             $ref: '#/components/schemas/SurveyQuestion'
     SurveyUpdateRequest:
-      type: []
+      type: object
       properties:
         name:
           type: string
@@ -3141,7 +3340,7 @@ components:
           example: '67890'
         content:
           type: string
-          example: 'Hey, how’s your quit plan going?'
+          example: "Hey, how's your quit plan going?"
         isRead:
           type: boolean
           example: false
@@ -3156,7 +3355,7 @@ components:
       properties:
         content:
           type: string
-          example: 'Hey, how’s your quit plan going?'
+          example: "Hey, how's your quit plan going?"
     Conversation:
       type: object
       properties:
@@ -3234,23 +3433,21 @@ components:
         id:
           type: string
           example: 'plan123'
+        coachId:
+          type: string
+          example: '67890'
+          description: 'ID of the coach who created the plan'
         userId:
           type: string
           example: '12345'
+          nullable: true
+          description: 'ID of the user assigned to this plan, null for template plans'
         title:
           type: string
           example: 'My Quit Smoking Plan'
-        description:
+        reason:
           type: string
-          example: 'A personalized plan to quit smoking'
-        status:
-          type: string
-          enum:
-            - draft
-            - active
-            - completed
-            - cancelled
-          example: active
+          example: 'I want to improve my health'
         startDate:
           type: string
           format: date-time
@@ -3259,6 +3456,19 @@ components:
           type: string
           format: date-time
           example: '2025-06-01T00:00:00Z'
+        expectedQuitDate:
+          type: string
+          format: date-time
+          example: '2025-03-01T00:00:00Z'
+        status:
+          type: string
+          enum:
+            - template
+            - pending
+            - ongoing
+            - completed
+            - failed
+          example: 'ongoing'
         createdAt:
           type: string
           format: date-time
@@ -3270,16 +3480,24 @@ components:
     QuitPlanCreateRequest:
       type: object
       required:
+        - coachId
         - title
-        - description
-        - startDate
+        - reason
       properties:
+        coachId:
+          type: string
+          example: '67890'
+        userId:
+          type: string
+          example: '12345'
+          nullable: true
+          description: 'Leave null for template plans'
         title:
           type: string
           example: 'My Quit Smoking Plan'
-        description:
+        reason:
           type: string
-          example: 'A personalized plan to quit smoking'
+          example: 'I want to improve my health'
         startDate:
           type: string
           format: date-time
@@ -3288,23 +3506,29 @@ components:
           type: string
           format: date-time
           example: '2025-06-01T00:00:00Z'
+        expectedQuitDate:
+          type: string
+          format: date-time
+          example: '2025-03-01T00:00:00Z'
+        status:
+          type: string
+          enum:
+            - template
+            - pending
+            - ongoing
+            - completed
+            - failed
+          default: 'template'
+          example: 'template'
     QuitPlanUpdateRequest:
       type: object
       properties:
         title:
           type: string
           example: 'Updated Quit Smoking Plan'
-        description:
+        reason:
           type: string
-          example: 'Updated personalized plan to quit smoking'
-        status:
-          type: string
-          enum:
-            - draft
-            - active
-            - completed
-            - cancelled
-          example: active
+          example: 'Updated reason for quitting'
         startDate:
           type: string
           format: date-time
@@ -3313,6 +3537,19 @@ components:
           type: string
           format: date-time
           example: '2025-06-01T00:00:00Z'
+        expectedQuitDate:
+          type: string
+          format: date-time
+          example: '2025-03-01T00:00:00Z'
+        status:
+          type: string
+          enum:
+            - template
+            - pending
+            - ongoing
+            - completed
+            - failed
+          example: 'ongoing'
     QuitPlanStage:
       type: object
       properties:
@@ -3322,28 +3559,27 @@ components:
         quitPlanId:
           type: string
           example: 'plan123'
-        title:
+        stage_name:
           type: string
           example: 'Week 1: Reduce Smoking'
         description:
           type: string
           example: 'Reduce cigarette intake by 50%'
-        startDate:
+        order_index:
+          type: number
+          example: 1
+        start_date:
           type: string
           format: date-time
           example: '2025-01-01T00:00:00Z'
-        endDate:
+        end_date:
           type: string
           format: date-time
           example: '2025-01-07T00:00:00Z'
-        status:
-          type: string
-          enum:
-            - pending
-            - in-progress
-            - completed
-            - failed
-          example: in-progress
+        completed:
+          type: boolean
+          default: false
+          example: false
         createdAt:
           type: string
           format: date-time
@@ -3355,50 +3591,90 @@ components:
     QuitPlanStageCreateRequest:
       type: object
       required:
-        - title
-        - description
-        - startDate
-        - endDate
+        - quitPlanId
+        - stage_name
+        - order_index
+        - start_date
+        - end_date
       properties:
-        title:
+        quitPlanId:
+          type: string
+          example: 'plan123'
+        stage_name:
           type: string
           example: 'Week 1: Reduce Smoking'
         description:
           type: string
           example: 'Reduce cigarette intake by 50%'
-        startDate:
+        order_index:
+          type: number
+          example: 1
+        start_date:
           type: string
           format: date-time
           example: '2025-01-01T00:00:00Z'
-        endDate:
+        end_date:
           type: string
           format: date-time
           example: '2025-01-07T00:00:00Z'
     QuitPlanStageUpdateRequest:
       type: object
       properties:
-        title:
+        stage_name:
           type: string
           example: 'Updated Week 1: Reduce Smoking'
         description:
           type: string
           example: 'Updated: Reduce cigarette intake by 60%'
-        startDate:
+        order_index:
+          type: number
+          example: 1
+        start_date:
           type: string
           format: date-time
           example: '2025-01-01T00:00:00Z'
-        endDate:
+        end_date:
           type: string
           format: date-time
           example: '2025-01-07T00:00:00Z'
-        status:
+        completed:
+          type: boolean
+          example: true
+    QuitProgress:
+      type: object
+      properties:
+        id:
           type: string
-          enum:
-            - pending
-            - in-progress
-            - completed
-            - failed
-          example: completed
+          example: 'progress123'
+        userId:
+          type: string
+          example: '12345'
+        stageId:
+          type: string
+          example: 'stage123'
+        date:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00Z'
+        cigarettesSmoked:
+          type: number
+          minimum: 0
+          example: 5
+        healthStatus:
+          type: string
+          example: 'Feeling good'
+        notes:
+          type: string
+          example: 'Had some cravings but managed to resist'
+          default: ''
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-01-02T00:00:00Z'
     Badge:
       type: object
       properties:

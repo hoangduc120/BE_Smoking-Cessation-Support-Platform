@@ -36,5 +36,9 @@ var quitplanSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Export the model
+quitplanSchema.index(
+  { userId: 1, status: 1 },
+  { unique: true, partialFilterExpression: { status: "ongoing" } }
+);
+
 module.exports = mongoose.model('Quitplan', quitplanSchema);
