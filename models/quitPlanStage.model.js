@@ -25,6 +25,10 @@ const quitPlanStageSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+  completed: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model("QuitPlanStage", quitPlanStageSchema);

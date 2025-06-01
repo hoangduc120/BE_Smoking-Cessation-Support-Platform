@@ -3,7 +3,7 @@ const router = express.Router();
 const quitPlanController = require('../controllers/quitPlan.controller');
 const { authMiddleware, restrictTo } = require('../middlewares/authMiddleware');
 
-router.post('/quitplans', authMiddleware, restrictTo('user', 'coach'), quitPlanController.createQuitPlan);
+router.post('/quitplans', authMiddleware, restrictTo('coach'), quitPlanController.createQuitPlan);
 router.get('/quitplans', authMiddleware, quitPlanController.getQuitPlans);
 router.get('/quitplans', authMiddleware, quitPlanController.getQuitPlans);
 router.get('/quitplans/:id', authMiddleware, quitPlanController.getQuitPlan);
@@ -20,5 +20,11 @@ router.put('/quitplan-stages/:id', authMiddleware, restrictTo('coach'), quitPlan
 router.delete('/quitplan-stages/:id', authMiddleware, restrictTo('coach', 'admin'), quitPlanController.deleteQuitPlanStage);
 router.post('/quitplans/:quitPlanId/badges', authMiddleware, restrictTo('coach'), quitPlanController.awardBadgeToQuitPlan);
 router.get('/quitplans/:quitPlanId/badges', authMiddleware, quitPlanController.getQuitPlanBadges);
+
+router.post('/quitplans/select', authMiddleware, restrictTo('user'), quitPlanController.selectQuitPlan);
+router.get('/quitplans/current', authMiddleware, restrictTo('user'), quitPlanController.getUserCurrentPlan);
+router.put('/quitplan-stages/:id/complete', authMiddleware, restrictTo('user'), quitPlanController.completeStage);
+router.put('/quitplans/:id/fail', authMiddleware, restrictTo('user'), quitPlanController.failQuitPlan);
+router.get('/quitplans/template', authMiddleware, restrictTo('coach'), quitPlanController.getTemplatePlans);
 
 module.exports = router;
