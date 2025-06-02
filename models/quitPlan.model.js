@@ -26,9 +26,6 @@ var quitplanSchema = new mongoose.Schema({
   endDate: {
     type: Date,
   },
-  expectedQuitDate: {
-    type: Date,
-  },
   status: {
     type: String,
     enum: ["template", "pending", "ongoing", "completed", "failed"],
