@@ -11,7 +11,7 @@ class QuitPlanService {
       await quitPlan.save();
       return quitPlan;
     } catch (error) {
-      throw new Error('Failed to create quit plan');
+      throw new Error(`Failed to create quit plan: ${error.message || error}`);
     }
   }
   async getQuitPlans({ userId, coachId, status }) {
@@ -75,6 +75,12 @@ class QuitPlanService {
   }
   async createQuitPlanStage(data) {
     try {
+      // Validate that the quit plan exists
+      const quitPlan = await QuitPlan.findById(data.quitPlanId);
+      if (!quitPlan) {
+        throw new Error('Quit plan not found');
+      }
+
       const stage = new QuitPlanStage(data)
       await stage.save();
       return stage;
@@ -149,14 +155,20 @@ class QuitPlanService {
   }
   async selectQuitPlan(userId, quitPlanId) {
     try {
-      const exisingPlan = await QuitPlan.findOne({ userId, status: "ongoing" });
-      if (exisingPlan) {
+      const existingPlan = await QuitPlan.findOne({ userId, status: "ongoing" });
+      if (existingPlan) {
         throw new Error('User already has an ongoing quit plan');
       }
       const templatePlan = await QuitPlan.findById(quitPlanId);
       if (!templatePlan || templatePlan.status !== "template") {
         throw new Error('Invalid quit plan template');
       }
+
+      // Ensure user can't select their own template
+      if (templatePlan.userId && templatePlan.userId.toString() === userId.toString()) {
+        throw new Error('Cannot select your own template');
+      }
+
       const newPlan = new QuitPlan({
         ...templatePlan.toObject(),
         userId,
@@ -167,7 +179,7 @@ class QuitPlanService {
       })
       await newPlan.save();
 
-      const stages = await QuitPlanStage.find({ quitPlanId })
+      const stages = await QuitPlanStage.find({ quitPlanId: templatePlan._id })
       const newStages = stages.map(stage => ({
         ...stage.toObject(),
         quitPlanId: newPlan._id,
@@ -221,8 +233,7 @@ class QuitPlanService {
 
       await this.awardBadgeToQuitPlan(plan._id, {
         name: "Stage Completed",
-        description: `Completed ${plan.title}`,
-        icon_url: stage.icon_url,
+        description: `Completed stage: ${stage.stage_name}`,
       })
       return { success: true, message: "Stage completed successfully" };
     } catch (error) {
