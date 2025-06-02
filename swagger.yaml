@@ -2122,7 +2122,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /quitplans:
+  /plans/quitplans:
     get:
       tags:
         - QuitPlan
@@ -2228,7 +2228,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /quitplans/{id}:
+  /plans/quitplans/{id}:
     get:
       tags:
         - QuitPlan
@@ -2356,7 +2356,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /quitplans/{quitPlanId}/stages:
+  /plans/quitplans/{quitPlanId}/stages:
     get:
       tags:
         - QuitPlanStage
@@ -2463,7 +2463,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /quitplan-stages/{id}:
+  /plans/quitplan-stages/{id}:
     put:
       tags:
         - QuitPlanStage
@@ -2550,7 +2550,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /quitplans/{quitPlanId}/badges:
+  /plans/quitplans/{quitPlanId}/badges:
     get:
       tags:
         - Badge
@@ -2651,7 +2651,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /quitplans/select:
+  /plans/quitplans/select:
     post:
       tags:
         - QuitPlan
@@ -2692,7 +2692,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /quitplans/current:
+  /plans/quitplans/current:
     get:
       tags:
         - QuitPlan
@@ -2731,7 +2731,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /quitplan-stages/{id}/complete:
+  /plans/quitplan-stages/{id}/complete:
     put:
       tags:
         - QuitPlanStage
@@ -2779,7 +2779,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /quitplans/{id}/fail:
+  /plans/quitplans/{id}/fail:
     put:
       tags:
         - QuitPlan
@@ -2814,7 +2814,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /quitplans/template:
+  /plans/quitplans/template:
     get:
       tags:
         - QuitPlan
