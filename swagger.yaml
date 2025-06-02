@@ -3456,10 +3456,7 @@ components:
           type: string
           format: date-time
           example: '2025-06-01T00:00:00Z'
-        expectedQuitDate:
-          type: string
-          format: date-time
-          example: '2025-03-01T00:00:00Z'
+
         status:
           type: string
           enum:
@@ -3506,10 +3503,7 @@ components:
           type: string
           format: date-time
           example: '2025-06-01T00:00:00Z'
-        expectedQuitDate:
-          type: string
-          format: date-time
-          example: '2025-03-01T00:00:00Z'
+
         status:
           type: string
           enum:
@@ -3537,10 +3531,6 @@ components:
           type: string
           format: date-time
           example: '2025-06-01T00:00:00Z'
-        expectedQuitDate:
-          type: string
-          format: date-time
-          example: '2025-03-01T00:00:00Z'
         status:
           type: string
           enum:
