@@ -33,6 +33,13 @@ var quitplanSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+quitplanSchema.pre('save', function (next) {
+  if (this.userId === 'null' || this.userId === '') {
+    this.userId = null;
+  }
+  next();
+});
+
 quitplanSchema.index(
   { userId: 1, status: 1 },
   { unique: true, partialFilterExpression: { status: "ongoing" } }
