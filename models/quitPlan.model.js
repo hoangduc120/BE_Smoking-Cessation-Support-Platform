@@ -20,6 +20,10 @@ var quitplanSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  image: {
+    type: String,
+    default: null,
+  },
   startDate: {
     type: Date,
   },
