@@ -2926,6 +2926,245 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /quitprogress:
+    post:
+      tags:
+        - QuitProgress
+      summary: Create a new quit progress
+      description: Creates a new quit progress record for the authenticated user (requires user role).
+      operationId: createQuitProgress
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuitProgressCreateRequest"
+        required: true
+      responses:
+        '200':
+          description: Quit progress created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuitProgress'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User does not have permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data (e.g., missing required fields or invalid stageId)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+        - QuitProgress
+      summary: Get quit progress records
+      description: Retrieves a list of quit progress records filtered by userId, stageId, or date with pagination (requires user role).
+      operationId: getQuitProgresses
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+            example: '54321'
+        - name: stageId
+          in: query
+          description: Filter by stage ID
+          schema:
+            type: string
+            example: 'stage-12345'
+        - name: date
+          in: query
+          description: Filter by date (format YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            example: '2025-06-02'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Number of quit progress records per page
+          schema:
+            type: integer
+            minimum: 1
+            example: 10
+      responses:
+        '200':
+          description: List of quit progress records with pagination metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  progresses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QuitProgress'
+                  total:
+                    type: integer
+                    example: 20
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 10
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid query parameters (e.g., invalid userId or stageId)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitprogress/{id}:
+    get:
+      tags:
+        - QuitProgress
+      summary: Get quit progress by ID
+      description: Retrieves a quit progress record by its ID (requires user role).
+      operationId: getQuitProgress
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the quit progress record
+          schema:
+            type: string
+            example: 'progress-12345'
+      responses:
+        '200':
+          description: Quit progress details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuitProgress'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit progress not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - QuitProgress
+      summary: Update a quit progress
+      description: Updates an existing quit progress record (requires user role and ownership).
+      operationId: updateQuitProgress
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the quit progress record
+          schema:
+            type: string
+            example: 'progress-12345'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuitProgressUpdateRequest"
+        required: true
+      responses:
+        '200':
+          description: Quit progress updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuitProgress'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User does not own the progress record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit progress not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - QuitProgress
+      summary: Delete a quit progress
+      description: Deletes a quit progress record (requires user or admin role).
+      operationId: deleteQuitProgress
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the quit progress record
+          schema:
+            type: string
+            example: 'progress-12345'
+      responses:
+        '200':
+          description: Quit progress deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User does not have permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit progress not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   securitySchemes:
@@ -3564,3 +3803,58 @@ components:
         message:
           type: string
           example: 'Invalid request data'
+    QuitProgressCreateRequest:
+      type: object
+      properties:
+        stageId:
+          type: string
+          example: 'stage-12345'
+          description: ID of the quit plan stage
+        date:
+          type: string
+          format: date-time
+          example: '2025-06-02T13:46:00.000Z'
+          description: Date of the progress record
+        cigarettesSmoked:
+          type: integer
+          minimum: 0
+          example: 5
+          description: Number of cigarettes smoked on the given date
+        healthStatus:
+          type: string
+          example: 'Feeling better'
+          description: User's health status
+        notes:
+          type: string
+          example: 'Had some cravings but managed to resist'
+          description: Optional notes about the progress
+      required:
+        - stageId
+        - date
+        - cigarettesSmoked
+        - healthStatus
+    QuitProgressUpdateRequest:
+      type: object
+      properties:
+        stageId:
+          type: string
+          example: 'stage-12345'
+          description: ID of the quit plan stage
+        date:
+          type: string
+          format: date-time
+          example: '2025-06-02T13:46:00.000Z'
+          description: Date of the progress record
+        cigarettesSmoked:
+          type: integer
+          minimum: 0
+          example: 5
+          description: Number of cigarettes smoked on the given date
+        healthStatus:
+          type: string
+          example: 'Feeling better'
+          description: User's health status
+        notes:
+          type: string
+          example: 'Updated notes'
+          description: Optional notes about the progress
