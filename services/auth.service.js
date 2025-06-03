@@ -5,7 +5,6 @@ const crypto = require('crypto');
 const { StatusCodes } = require('http-status-codes');
 const ErrorWithStatus = require('../utils/errorWithStatus');
 const sendMail = require('../utils/sendMail');
-const asyncHandler = require('express-async-handler');
 class AuthService {
   async login(email, password) {
     const user = await User.findOne({ email });
@@ -43,7 +42,6 @@ class AuthService {
   }
 
   async refreshToken(refreshToken) {
-    console.log('refreshToken', refreshToken);
     const user = await User.findOne({ refreshToken });
     if (!user) {
       throw new ErrorWithStatus({
