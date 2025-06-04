@@ -294,6 +294,48 @@ class BlogService {
 
         return savedComment.populate('author', 'name email');
     }
+
+    async getBlogsByUserId(userId, { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' }) {
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return null;
+        }
+
+        const query = {
+            user: userId,
+            isDeleted: false,
+            isHidden: false
+        };
+
+        const sortOptions = {};
+        sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+        const blogs = await Blog.find(query)
+            .populate("user", "name email")
+            .populate({
+                path: "tags",
+                select: "tagId tagName"
+            })
+            .populate({
+                path: "comments",
+                populate: {
+                    path: "author",
+                    select: "name email"
+                }
+            })
+            .skip((page - 1) * limit)
+            .limit(Number(limit))
+            .sort(sortOptions)
+            .lean();
+
+        const total = await Blog.countDocuments(query);
+
+        return {
+            blogs,
+            total,
+            currentPage: Number(page),
+            totalPages: Math.ceil(total / Number(limit))
+        };
+    }
 }
 
 module.exports = BlogService
