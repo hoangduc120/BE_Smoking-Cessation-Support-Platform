@@ -9,27 +9,26 @@ const QuitPlan = require("../models/quitPlan.model");
 class ChatMessageService {
     async getUsersForSidebar(loggedInUserId) {
         try {
-            // Lấy danh sách người dùng mà loggedInUserId đang theo dõi
             const follows = await Follow.find({
                 following: loggedInUserId,
                 status: 'active',
             }).select('followed');
-
             const followedUserIds = follows.map(follow => follow.followed);
 
             const quitPlans = await QuitPlan.find({
-                $or: [{ userId: loggedInUserId }, { coachId: loggedInUserId }],
-            }).populate('userId coachId');
+                userId: loggedInUserId,
+                coachId: { $ne: null },
+            }).populate({
+                path: 'coachId',
+                match: { isActive: true, isDeleted: false },
+                select: '_id',
+            });
 
-            const quitPlanUserIds = quitPlans.map(plan =>
-                plan.userId._id.toString() === loggedInUserId.toString() ? plan.coachId._id : plan.userId._id
-            );
+            const coachIds = quitPlans
+                .filter(plan => plan.coachId)
+                .map(plan => plan.coachId._id);
 
-            const coaches = await User.find({ role: 'coach' }).select('_id');
-
-            const coachIds = coaches.map(coach => coach._id);
-
-            const uniqueUserIds = [...new Set([...followedUserIds, ...quitPlanUserIds, ...coachIds])];
+            const uniqueUserIds = [...new Set([...followedUserIds, ...coachIds])];
 
             const filteredUsers = await User.find({
                 _id: { $in: uniqueUserIds, $ne: loggedInUserId },
