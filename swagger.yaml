@@ -316,6 +316,72 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /blogs/user/{userId}:
+    get:
+      tags:
+        - Blog
+      summary: Get blogs by user ID
+      description: Retrieves all blogs created by a specific user.
+      operationId: getBlogsByUserId
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '12345'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Number of blogs per page
+          schema:
+            type: integer
+            example: 10
+        - name: sortBy
+          in: query
+          description: Field to sort by
+          schema:
+            type: string
+            example: 'createdAt'
+        - name: sortOrder
+          in: query
+          description: Sort order (asc or desc)
+          schema:
+            type: string
+            enum: ['asc', 'desc']
+            example: 'desc'
+      responses:
+        '200':
+          description: List of blogs by user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blogs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Blog"
+                  total:
+                    type: integer
+                    example: 20
+                  currentPage:
+                    type: integer
+                    example: 1
+                  totalPages:
+                    type: integer
+                    example: 2
+        '404':
+          description: User not found or invalid user ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /blogs/{slug}:
     get:
       tags:
@@ -3858,3 +3924,168 @@ components:
           type: string
           example: 'Updated notes'
           description: Optional notes about the progress
+    Blog:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 'blog123'
+        title:
+          type: string
+          example: 'Cách bỏ thuốc lá hiệu quả'
+        slug:
+          type: string
+          example: 'cach-bo-thuoc-la-hieu-qua'
+        description:
+          type: string
+          example: 'Bài viết giới thiệu các phương pháp bỏ thuốc lá hiệu quả'
+        image:
+          type: array
+          items:
+            type: string
+            format: uri
+            example: 'https://example.com/images/quit-smoking.jpg'
+        tags:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                example: 'tag123'
+              tagId:
+                type: string
+                example: 'quit-smoking'
+              tagName:
+                type: string
+                example: 'quit-smoking'
+        likes:
+          type: array
+          items:
+            type: string
+            example: 'user123'
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        user:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 'user123'
+            name:
+              type: string
+              example: 'John Doe'
+            email:
+              type: string
+              format: email
+              example: 'john@example.com'
+        isDeleted:
+          type: boolean
+          example: false
+        isHidden:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: '2023-01-15T08:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2023-01-15T08:30:00Z'
+      required:
+        - _id
+        - title
+        - slug
+        - description
+        - user
+    BlogCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: 'Cách bỏ thuốc lá hiệu quả'
+        description:
+          type: string
+          example: 'Bài viết giới thiệu các phương pháp bỏ thuốc lá hiệu quả'
+        image:
+          type: array
+          items:
+            type: string
+            format: uri
+            example: 'https://example.com/images/quit-smoking.jpg'
+        tags:
+          type: array
+          items:
+            type: string
+            example: 'quit-smoking'
+      required:
+        - title
+        - description
+    BlogUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: 'Cập nhật: Cách bỏ thuốc lá hiệu quả'
+        description:
+          type: string
+          example: 'Nội dung cập nhật về các phương pháp bỏ thuốc lá'
+        image:
+          type: array
+          items:
+            type: string
+            format: uri
+            example: 'https://example.com/images/updated-quit-smoking.jpg'
+        tags:
+          type: array
+          items:
+            type: string
+            example: 'quit-smoking'
+    Comment:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 'comment123'
+        text:
+          type: string
+          example: 'Bài viết rất hữu ích!'
+        author:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 'user123'
+            name:
+              type: string
+              example: 'John Doe'
+            email:
+              type: string
+              format: email
+              example: 'john@example.com'
+        blog:
+          type: string
+          example: 'blog123'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2023-01-15T09:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2023-01-15T09:30:00Z'
+      required:
+        - _id
+        - text
+        - author
+    CommentRequest:
+      type: object
+      properties:
+        comment:
+          type: string
+          example: 'Bài viết rất hữu ích!'
+      required:
+        - comment

@@ -131,6 +131,24 @@ const addComment = asyncHandler(async (req, res) => {
     })
 })
 
+const getBlogsByUserId = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const { page = 1, limit = 10, sortBy, sortOrder } = req.query;
+
+    const result = await blogService.getBlogsByUserId(userId, { page, limit, sortBy, sortOrder });
+
+    if (!result) {
+        res.status(404);
+        throw new Error('User not found or invalid user ID');
+    }
+
+    res.status(200).json({
+        success: true,
+        message: "User's blogs fetched successfully",
+        data: result
+    });
+});
+
 module.exports = {
     createBlog,
     getAllBlogs,
@@ -140,5 +158,6 @@ module.exports = {
     likeBlog,
     addComment,
     getAllTags,
-    getBlogsByTag
+    getBlogsByTag,
+    getBlogsByUserId
 }
