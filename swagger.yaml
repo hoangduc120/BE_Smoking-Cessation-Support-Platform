@@ -1052,80 +1052,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /users/my-followers:
-    get:
-      tags:
-        - User
-      summary: Get my followers
-      description: Retrieves the list of followers of the authenticated user.
-      operationId: getMyFollowers
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: page
-          in: query
-          description: Page number for pagination
-          schema:
-            type: integer
-            example: 1
-        - name: limit
-          in: query
-          description: Number of followers per page
-          schema:
-            type: integer
-            example: 10
-      responses:
-        '200':
-          description: List of followers
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /users/my-following:
-    get:
-      tags:
-        - User
-      summary: Get users I follow
-      description: Retrieves the list of users followed by the authenticated user.
-      operationId: getMyFollowing
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: page
-          in: query
-          description: Page number for pagination
-          schema:
-            type: integer
-            example: 1
-        - name: limit
-          in: query
-          description: Number of followed users per page
-          schema:
-            type: integer
-            example: 10
-      responses:
-        '200':
-          description: List of followed users
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /surveys:
     get:
       tags:
@@ -1965,7 +1891,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ErrorResponse'  
   /chat/conversations:
     get:
       tags:

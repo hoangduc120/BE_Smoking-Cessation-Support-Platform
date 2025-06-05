@@ -33,7 +33,5 @@ router.put("/unfollow/:id", authMiddleware, userController.unfollowUser);
 // Get followers and following
 router.get("/followers/:id", authMiddleware, userController.getFollowers);
 router.get("/following/:id", authMiddleware, userController.getFollowing);
-router.get("/my-followers", authMiddleware, userController.getFollowers);
-router.get("/my-following", authMiddleware, userController.getFollowing);
 
 module.exports = router;
