@@ -1,5 +1,6 @@
 const quitPlanService = require('../services/quitPlan.service');
 const { OK, CREATED, BAD_REQUEST } = require("../configs/response.config");
+const mongoose = require('mongoose');
 
 
 class QuitPlanController {
@@ -129,11 +130,18 @@ class QuitPlanController {
   }
   async getUserCurrentPlan(req, res) {
     try {
-      const userId = req.user._id;
-      const data = await quitPlanService.getUserCurrentPlan(userId)
+      const userId = req.user?._id;
+      if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+        return BAD_REQUEST(res, 'Invalid user ID');
+      }
+      const data = await quitPlanService.getUserCurrentPlan(userId);
+      if (!data) {
+        return OK(res, 'No ongoing plan found', null);
+      }
       return OK(res, 'User current plan fetched successfully', data);
     } catch (error) {
-      return BAD_REQUEST(res, error.message);
+      console.error('Controller error:', error);
+      return BAD_REQUEST(res, error.message || 'Failed to fetch plan');
     }
   }
   async completeStage(req, res) {

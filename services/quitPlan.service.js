@@ -2,6 +2,7 @@ const QuitPlan = require('../models/quitPlan.model');
 const QuitPlanStage = require("../models/quitPlanStage.model");
 const Badge = require('../models/badge.model');
 const QuitProgress = require('../models/quitProgress.model');
+const mongoose = require('mongoose');
 
 
 class QuitPlanService {
@@ -199,19 +200,22 @@ class QuitPlanService {
   }
   async getUserCurrentPlan(userId) {
     try {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw new Error('Invalid user ID format');
+      }
       const plan = await QuitPlan.findOne({ userId, status: "ongoing" })
         .populate('coachId', 'name email')
         .populate('userId', 'name email');
       if (!plan) {
-        return null
+        return null;
       }
-
       const stages = await QuitPlanStage.find({ quitPlanId: plan._id })
         .sort({ order_index: 1 });
-      const progress = await QuitProgress.find({ userId, stageId: { $in: stages.map(s => s._id) } })
+      const progress = await QuitProgress.find({ userId, stageId: { $in: stages.map(s => s._id) } });
       return { plan, stages, progress };
     } catch (error) {
-      throw new Error('Failed to get user current plan');
+      console.error('Service error:', error);
+      throw new Error(`Failed to get user current plan: ${error.message}`);
     }
   }
   async completeStage(stageId, userId) {
