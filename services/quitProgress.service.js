@@ -1,9 +1,11 @@
-const QuitPlanStage = require("../models/quitPlanStage.model")
+const QuitPlan = require("../models/quitPlan.model");
+const QuitPlanStage = require("../models/quitPlanStage.model");
+const QuitProgress = require("../models/quitProgress.model");
 
 
 class QuitProgressService {
     async createQuitProgress(quitProgressData) {
-        const { userId, stageId, data, cigarettesSmoked, healthStatus, notes } = quitProgressData
+        const { userId, stageId, date, cigarettesSmoked, healthStatus, notes } = quitProgressData
 
         const stage = await QuitPlanStage.findById(stageId)
         if (!stage) {
