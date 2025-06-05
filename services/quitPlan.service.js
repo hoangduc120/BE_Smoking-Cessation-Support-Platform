@@ -159,14 +159,17 @@ class QuitPlanService {
       if (existingPlan) {
         throw new Error('User already has an ongoing quit plan');
       }
+
       const templatePlan = await QuitPlan.findById(quitPlanId);
-      if (!templatePlan || templatePlan.status !== "template") {
-        throw new Error('Invalid quit plan template');
+      if (!templatePlan) {
+        throw new Error('Quit plan not found');
       }
 
-      // Ensure user can't select their own template
+      if (templatePlan.status !== "template" && templatePlan.status !== "ongoing") {
+        throw new Error('Can only select template or ongoing plans');
+      }
       if (templatePlan.userId && templatePlan.userId.toString() === userId.toString()) {
-        throw new Error('Cannot select your own template');
+        throw new Error('Cannot select your own plan');
       }
 
       const newPlan = new QuitPlan({
@@ -191,7 +194,7 @@ class QuitPlanService {
 
       return newPlan;
     } catch (error) {
-      throw new Error('Failed to select quit plan');
+      throw new Error(`Failed to select quit plan: ${error.message}`);
     }
   }
   async getUserCurrentPlan(userId) {
