@@ -9,34 +9,14 @@ const QuitPlan = require("../models/quitPlan.model");
 class ChatMessageService {
     async getUsersForSidebar(loggedInUserId) {
         try {
-            const follows = await Follow.find({
-                following: loggedInUserId,
-                status: 'active',
-            }).select('followed');
-            const followedUserIds = follows.map(follow => follow.followed);
-
-            const quitPlans = await QuitPlan.find({
-                userId: loggedInUserId,
-                coachId: { $ne: null },
-            }).populate({
-                path: 'coachId',
-                match: { isActive: true, isDeleted: false },
-                select: '_id',
-            });
-
-            const coachIds = quitPlans
-                .filter(plan => plan.coachId)
-                .map(plan => plan.coachId._id);
-
-            const uniqueUserIds = [...new Set([...followedUserIds, ...coachIds])];
-
-            const filteredUsers = await User.find({
-                _id: { $in: uniqueUserIds, $ne: loggedInUserId },
+            // Lấy tất cả user active (trừ chính user đang đăng nhập)
+            const allUsers = await User.find({
+                _id: { $ne: loggedInUserId },
                 isActive: true,
                 isDeleted: false,
             }).select('userName email profilePicture role');
 
-            return filteredUsers.map(user => ({
+            return allUsers.map(user => ({
                 _id: user._id,
                 userName: user.userName,
                 email: user.email,
@@ -219,6 +199,34 @@ class ChatMessageService {
                 user: conv._id,
                 lastMessage: conv.lastMessage,
                 unreadCount: conv.unreadCount
+            }));
+        } catch (error) {
+            throw new Error(error.message);
+        }
+    }
+
+    async searchUsers(loggedInUserId, searchQuery) {
+        try {
+            if (!searchQuery || searchQuery.trim().length < 2) {
+                return [];
+            }
+
+            const users = await User.find({
+                _id: { $ne: loggedInUserId },
+                isActive: true,
+                isDeleted: false,
+                $or: [
+                    { userName: { $regex: searchQuery, $options: 'i' } },
+                    { email: { $regex: searchQuery, $options: 'i' } }
+                ]
+            }).select('userName email profilePicture role').limit(20);
+
+            return users.map(user => ({
+                _id: user._id,
+                userName: user.userName,
+                email: user.email,
+                profilePicture: user.profilePicture,
+                role: user.role,
             }));
         } catch (error) {
             throw new Error(error.message);
