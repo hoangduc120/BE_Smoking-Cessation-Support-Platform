@@ -73,6 +73,18 @@ class ChatMessageController {
         const conversations = await chatMessageService.getConversations(userId);
         return OK(res, "Get conversations successfully", conversations);
     });
+
+    searchUsers = catchAsync(async (req, res) => {
+        const loggedInUserId = req.id;
+        const { q } = req.query; // search query từ query parameter
+
+        if (!q || q.trim().length < 2) {
+            return BAD_REQUEST(res, "Search query must be at least 2 characters long");
+        }
+
+        const users = await chatMessageService.searchUsers(loggedInUserId, q);
+        return OK(res, "Search users successfully", users);
+    });
 }
 
 module.exports = new ChatMessageController();
