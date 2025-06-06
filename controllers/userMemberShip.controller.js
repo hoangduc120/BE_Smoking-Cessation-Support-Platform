@@ -65,6 +65,46 @@ class UserMemberShipController {
             res.status(500).json({ message: error.message })
         }
     }
+
+    async getMembershipStatus(req, res) {
+        try {
+            const status = await UserMemberShipService.getMembershipStatus(req.params.userId)
+            res.status(200).json({
+                success: true,
+                message: 'Membership status fetched successfully',
+                data: status
+            })
+        } catch (error) {
+            res.status(500).json({ message: error.message })
+        }
+    }
+
+    async getUpgradeOptions(req, res) {
+        try {
+            const options = await UserMemberShipService.getUpgradeOptions(req.params.userId)
+            res.status(200).json({
+                success: true,
+                message: 'Upgrade options fetched successfully',
+                data: options
+            })
+        } catch (error) {
+            res.status(500).json({ message: error.message })
+        }
+    }
+
+    async canUpgradePlan(req, res) {
+        try {
+            const { userId, planId } = req.params;
+            const result = await UserMemberShipService.canUpgradePlan(userId, planId)
+            res.status(200).json({
+                success: true,
+                message: 'Upgrade check completed',
+                data: result
+            })
+        } catch (error) {
+            res.status(500).json({ message: error.message })
+        }
+    }
 }
 
 module.exports = new UserMemberShipController()

@@ -4,7 +4,7 @@ servers:
     url: http://localhost:5000
 info:
   version: "1.0.0"
-  title: QuitSmoke API
+  title: QuitSmoke API by Hoàng Đức
   description: API for managing user authentication, blogs, profiles, surveys, memberships, payments, chat, and quit plans, developed by Hoàng Đức.
   contact:
     name: Hoàng Đức
@@ -1353,7 +1353,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /membership-plans:
+  /packages:
     get:
       tags:
         - MembershipPlan
@@ -1427,7 +1427,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /membership-plans/{id}:
+  /packages/{id}:
     get:
       tags:
         - MembershipPlan
@@ -1540,12 +1540,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /user-memberships/register:
+  /memberships/register:
     post:
       tags:
         - UserMembership
       summary: Register for a membership plan
-      description: Registers the authenticated user for a membership plan.
+      description: Registers the authenticated user for a membership plan (requires user role).
       operationId: registerPackage
       security:
         - BearerAuth: []
@@ -1556,30 +1556,36 @@ paths:
               $ref: '#/components/schemas/UserMembershipRegisterRequest'
         required: true
       responses:
-        '200':
+        '201':
           description: Successfully registered for membership plan
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserMembership'
         '401':
-          description: Unauthorized
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User does not have permission
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '400':
-          description: Invalid request data
+          description: Invalid request data (e.g., invalid packageId or userId)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /user-memberships/active/{userId}:
+  /memberships/active/{userId}:
     get:
       tags:
         - UserMembership
       summary: Get active membership
-      description: Retrieves the active membership for a specific user.
+      description: Retrieves the active membership for a specific user (requires authentication).
       operationId: getActiveMembership
       security:
         - BearerAuth: []
@@ -1587,6 +1593,7 @@ paths:
         - name: userId
           in: path
           required: true
+          description: ID of the user
           schema:
             type: string
             example: '12345'
@@ -1598,7 +1605,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserMembership'
         '401':
-          description: Unauthorized
+          description: Unauthorized - Invalid or missing authentication token
           content:
             application/json:
               schema:
@@ -1609,12 +1616,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /user-memberships/access/{userId}/{feature}:
+  /memberships/access/{userId}/{feature}:
     get:
       tags:
         - UserMembership
       summary: Check feature access
-      description: Checks if a user has access to a specific feature based on their membership.
+      description: Checks if a user has access to a specific feature based on their membership (requires authentication).
       operationId: checkFeatureAccess
       security:
         - BearerAuth: []
@@ -1622,12 +1629,14 @@ paths:
         - name: userId
           in: path
           required: true
+          description: ID of the user
           schema:
             type: string
             example: '12345'
         - name: feature
           in: path
           required: true
+          description: Feature to check access for
           schema:
             type: string
             example: 'personalized-coaching'
@@ -1639,11 +1648,17 @@ paths:
               schema:
                 type: object
                 properties:
-                  hasAccess:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Feature access checked successfully'
+                  data:
                     type: boolean
                     example: true
         '401':
-          description: Unauthorized
+          description: Unauthorized - Invalid or missing authentication token
           content:
             application/json:
               schema:
@@ -1654,12 +1669,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /user-memberships/pending/{userId}:
+  /memberships/pending/{userId}:
     get:
       tags:
         - UserMembership
       summary: Get pending memberships
-      description: Retrieves all pending memberships for a specific user.
+      description: Retrieves all pending memberships for a specific user (requires authentication).
       operationId: getPendingMemberships
       security:
         - BearerAuth: []
@@ -1667,6 +1682,7 @@ paths:
         - name: userId
           in: path
           required: true
+          description: ID of the user
           schema:
             type: string
             example: '12345'
@@ -1676,11 +1692,20 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UserMembership'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Pending memberships fetched successfully'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserMembership'
         '401':
-          description: Unauthorized
+          description: Unauthorized - Invalid or missing authentication token
           content:
             application/json:
               schema:
@@ -1691,12 +1716,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /user-memberships/history/{userId}:
+  /memberships/history/{userId}:
     get:
       tags:
         - UserMembership
       summary: Get membership history
-      description: Retrieves the membership history for a specific user.
+      description: Retrieves the membership history for a specific user (requires authentication).
       operationId: getMembershipHistory
       security:
         - BearerAuth: []
@@ -1704,6 +1729,7 @@ paths:
         - name: userId
           in: path
           required: true
+          description: ID of the user
           schema:
             type: string
             example: '12345'
@@ -1712,12 +1738,14 @@ paths:
           description: Page number for pagination
           schema:
             type: integer
+            minimum: 1
             example: 1
         - name: limit
           in: query
           description: Number of memberships per page
           schema:
             type: integer
+            minimum: 1
             example: 10
       responses:
         '200':
@@ -1725,17 +1753,194 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UserMembership'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Membership history fetched successfully'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserMembership'
         '401':
-          description: Unauthorized
+          description: Unauthorized - Invalid or missing authentication token
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /memberships/status/{userId}:
+    get:
+      tags:
+        - UserMembership
+      summary: Get membership status
+      description: Retrieves the membership status for a specific user, including active plan details and upgrade eligibility (requires authentication).
+      operationId: getMembershipStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID of the user
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Membership status details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Membership status fetched successfully'
+                  data:
+                    $ref: '#/components/schemas/MembershipStatus'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /memberships/upgrade-options/{userId}:
+    get:
+      tags:
+        - UserMembership
+      summary: Get upgrade options
+      description: Retrieves available membership plan upgrade options for a specific user (requires user role).
+      operationId: getUpgradeOptions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID of the user
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Available upgrade options
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Upgrade options fetched successfully'
+                  data:
+                    type: object
+                    properties:
+                      currentPlan:
+                        $ref: '#/components/schemas/MembershipPlan'
+                      upgradeOptions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/MembershipPlanWithRecommendation'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User does not have permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /memberships/can-upgrade/{userId}/{planId}:
+    get:
+      tags:
+        - UserMembership
+      summary: Check if user can upgrade to a specific plan
+      description: Checks if a user can upgrade to a specific membership plan (requires user role).
+      operationId: canUpgradePlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID of the user
+          schema:
+            type: string
+            example: '12345'
+        - name: planId
+          in: path
+          required: true
+          description: ID of the target membership plan
+          schema:
+            type: string
+            example: 'plan-001'
+      responses:
+        '200':
+          description: Upgrade eligibility status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Upgrade check completed'
+                  data:
+                    type: object
+                    properties:
+                      canUpgrade:
+                        type: boolean
+                        example: true
+                      reason:
+                        type: string
+                        example: 'Có thể nâng cấp'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User does not have permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User or plan not found
           content:
             application/json:
               schema:
@@ -3234,6 +3439,36 @@ components:
         - password
         - confirmPassword
         - userName
+    RefreshTokenRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+      required:
+        - refreshToken
+    ForgotPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'user@example.com'
+      required:
+        - email
+    ResetPasswordRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          example: 'reset-token-123'
+        newPassword:
+          type: string
+          format: password
+          example: 'newpassword123'
+      required:
+        - token
+        - newPassword
     User:
       type: object
       properties:
@@ -3294,6 +3529,65 @@ components:
         - userName
         - email
         - role
+    UserUpdateRequest:
+      type: object
+      properties:
+        userName:
+          type: string
+          example: 'john_doe_updated'
+        gender:
+          type: string
+          enum: ['male', 'female', 'other']
+          example: 'male'
+        bio:
+          type: string
+          example: 'Updated bio'
+        dateOfBirth:
+          type: string
+          format: date
+          example: '1990-01-01'
+        phone:
+          type: string
+          example: '+84901234567'
+        address:
+          type: string
+          example: '123 Updated St, City'
+    UserStats:
+      type: object
+      properties:
+        blogsCount:
+          type: integer
+          example: 10
+        surveysCount:
+          type: integer
+          example: 5
+        quitPlansCount:
+          type: integer
+          example: 2
+        smokingFreeDays:
+          type: integer
+          example: 30
+    ChangePasswordRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          example: 'currentpassword123'
+        newPassword:
+          type: string
+          format: password
+          example: 'newpassword123'
+      required:
+        - currentPassword
+        - newPassword
+    AvatarUploadRequest:
+      type: object
+      properties:
+        avatar:
+          type: string
+          format: binary
+          description: Avatar image file
     MembershipPlan:
       type: object
       properties:
@@ -3382,7 +3676,7 @@ components:
       properties:
         _id:
           type: string
-          example: 'membership-001'
+          example: 'membership-12345'
         userId:
           type: string
           example: '12345'
@@ -3404,6 +3698,28 @@ components:
         price:
           type: number
           example: 29.99
+        paymentInfo:
+          type: object
+          properties:
+            orderId:
+              type: string
+              example: 'order-12345'
+            amount:
+              type: number
+              example: 29.99
+            createDate:
+              type: string
+              example: '20250101123000'
+            transactionId:
+              type: string
+              example: 'txn-12345'
+            paymentDate:
+              type: string
+              format: date-time
+              example: '2025-01-01T12:30:00.000Z'
+            bankCode:
+              type: string
+              example: 'NCB'
         createdAt:
           type: string
           format: date-time
@@ -3423,11 +3739,212 @@ components:
     UserMembershipRegisterRequest:
       type: object
       properties:
-        memberShipPlanId:
+        packageId:
           type: string
           example: 'plan-001'
+          description: ID of the membership plan to register for
+        durationType:
+          type: string
+          enum: ['week', 'month']
+          example: 'month'
+          description: Duration type for the membership
       required:
-        - memberShipPlanId
+        - packageId
+        - durationType
+    MembershipStatus:
+      type: object
+      properties:
+        hasActiveMembership:
+          type: boolean
+          example: true
+          description: Indicates if the user has an active membership
+        currentPlan:
+          $ref: '#/components/schemas/MembershipPlan'
+          description: The user's current membership plan
+        features:
+          type: array
+          items:
+            type: string
+          example: ['personalized-coaching', 'progress-tracking']
+          description: Features available in the current plan
+        daysLeft:
+          type: integer
+          example: 15
+          description: Number of days left in the active membership
+        isExpiringSoon:
+          type: boolean
+          example: false
+          description: Indicates if the membership is expiring within 7 days
+        endDate:
+          type: string
+          format: date-time
+          example: '2025-06-21T23:59:59.999Z'
+          nullable: true
+          description: End date of the active membership
+        canUpgrade:
+          type: boolean
+          example: true
+          description: Indicates if the user can upgrade to a higher plan
+      required:
+        - hasActiveMembership
+        - currentPlan
+        - features
+        - daysLeft
+        - isExpiringSoon
+        - canUpgrade
+    MembershipPlanWithRecommendation:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 'plan-001'
+        name:
+          type: string
+          example: 'Pro Plan'
+        description:
+          type: string
+          example: 'Access to advanced features'
+        price:
+          type: number
+          example: 19.99
+        duration:
+          type: integer
+          example: 30
+        features:
+          type: array
+          items:
+            type: string
+          example: ['personalized-coaching', 'progress-tracking']
+        isActive:
+          type: boolean
+          example: true
+        isRecommended:
+          type: boolean
+          example: true
+          description: Indicates if the plan is recommended for the user
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00.000Z'
+      required:
+        - _id
+        - name
+        - price
+        - duration
+        - isRecommended
+    PaymentCreateRequest:
+      type: object
+      properties:
+        userMembershipId:
+          type: string
+          example: 'membership-12345'
+          description: ID of the user membership to create payment for
+      required:
+        - userMembershipId
+    Survey:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: '67890'
+        title:
+          type: string
+          example: 'Health Assessment Survey'
+        description:
+          type: string
+          example: 'A survey to assess current health status'
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+                example: 'How often do you smoke per day?'
+              type:
+                type: string
+                enum: ['text', 'multiple-choice', 'rating']
+                example: 'multiple-choice'
+              options:
+                type: array
+                items:
+                  type: string
+                example: ['0-5', '6-10', '11-20', '20+']
+        userId:
+          type: string
+          example: '12345'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00.000Z'
+      required:
+        - _id
+        - title
+        - questions
+        - userId
+    SurveyCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: 'Health Assessment Survey'
+        description:
+          type: string
+          example: 'A survey to assess current health status'
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+                example: 'How often do you smoke per day?'
+              type:
+                type: string
+                enum: ['text', 'multiple-choice', 'rating']
+                example: 'multiple-choice'
+              options:
+                type: array
+                items:
+                  type: string
+                example: ['0-5', '6-10', '11-20', '20+']
+      required:
+        - title
+        - questions
+    SurveyUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: 'Updated Health Assessment Survey'
+        description:
+          type: string
+          example: 'Updated description'
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+                example: 'Updated question'
+              type:
+                type: string
+                enum: ['text', 'multiple-choice', 'rating']
+                example: 'multiple-choice'
+              options:
+                type: array
+                items:
+                  type: string
+                example: ['option1', 'option2']
     ChatMessage:
       type: object
       properties:
