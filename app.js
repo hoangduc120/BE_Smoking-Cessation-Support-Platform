@@ -7,7 +7,8 @@ const connectDB = require("./configs/connectDB.config");
 const passport = require("./configs/passport.config");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
-const { swaggerUi, swaggerSpec } = require("./configs/swagger"); // 🆕 Thêm swagger
+const { swaggerUi, swaggerSpec } = require("./configs/swagger");
+const MembershipScheduler = require("./utils/membershipScheduler");
 
 const app = express();
 
@@ -43,6 +44,9 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // 🆕 Thêm s
 // Routes
 const appRoutes = require("./router/appRoutes");
 app.use("/", appRoutes);
+
+
+MembershipScheduler.initScheduler();
 
 // Error handling
 app.use((req, res, next) => {
