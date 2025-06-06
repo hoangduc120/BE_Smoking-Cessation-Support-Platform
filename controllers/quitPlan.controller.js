@@ -104,7 +104,16 @@ class QuitPlanController {
   }
   async awardBadgeToQuitPlan(req, res) {
     try {
-      const badge = await quitPlanService.awardBadgeToQuitPlan(req.params.quitPlanId, req.body)
+      const { userId } = req.body;
+      const authUserId = req.user?._id;
+
+      const targetUserId = userId || authUserId;
+
+      const badge = await quitPlanService.awardBadgeToQuitPlan(
+        req.params.quitPlanId,
+        req.body,
+        targetUserId
+      );
       return OK(res, 'Badge awarded to quit plan successfully', badge);
     } catch (error) {
       return BAD_REQUEST(res, error.message);

@@ -123,22 +123,27 @@ class QuitPlanService {
       throw new Error('Failed to delete quit plan stage');
     }
   }
-  async awardBadgeToQuitPlan(quitPlanId, badgeData) {
+  async awardBadgeToQuitPlan(quitPlanId, badgeData, userId = null) {
     try {
       const quitPlan = await QuitPlan.findById(quitPlanId);
       if (!quitPlan) {
         throw new Error('Quit plan not found');
       }
+      let targetUserId = userId || quitPlan.userId;
+      if (!targetUserId) {
+        throw new Error('Cannot award badge to template plan without specifying userId');
+      }
       const badge = new Badge({
         ...badgeData,
         quitPlanId,
-        userId: quitPlan.userId,
+        userId: targetUserId,
         awardedAt: new Date(),
       })
       await badge.save();
       return badge;
     } catch (error) {
-      throw new Error('Failed to award badge to quit plan');
+      console.error('Award badge error:', error);
+      throw new Error(`Failed to award badge to quit plan: ${error.message}`);
     }
   }
   async getQuitPlanBadges(quitPlanId) {
