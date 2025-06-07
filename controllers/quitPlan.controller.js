@@ -157,8 +157,18 @@ class QuitPlanController {
     try {
       const userId = req.user._id
       const { stageId } = req.params
-      const stage = await quitPlanService.completeStage(stageId, userId)
-      return OK(res, 'Stage completed successfully', stage);
+      const result = await quitPlanService.completeStage(stageId, userId)
+      return OK(res, result.message, result);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
+  async completePlan(req, res) {
+    try {
+      const userId = req.user._id
+      const { planId } = req.params
+      const result = await quitPlanService.completePlan(planId, userId)
+      return OK(res, 'Plan completed successfully! Badge awarded.', result);
     } catch (error) {
       return BAD_REQUEST(res, error.message);
     }
@@ -166,8 +176,8 @@ class QuitPlanController {
   async failQuitPlan(req, res) {
     try {
       const userId = req.user._id
-      const { planId } = req.params
-      const plan = await quitPlanService.failQuitPlan(planId, userId)
+      const { id } = req.params
+      const plan = await quitPlanService.failQuitPlan(id, userId)
       return OK(res, 'Quit plan failed successfully', plan);
     } catch (error) {
       return BAD_REQUEST(res, error.message);

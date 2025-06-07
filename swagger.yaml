@@ -2978,8 +2978,8 @@ paths:
     put:
       tags:
         - QuitPlanStage
-      summary: Complete a quit plan stage
-      description: Marks a quit plan stage as completed for the user and awards a badge.
+      summary: Complete a quit plan stage (Manual)
+      description: Manually marks a quit plan stage as completed. Note - Stages are normally auto-completed when users log daily progress for all required days. If all stages are completed, the plan is marked as completed and a badge is awarded.
       operationId: completeStage
       security:
         - BearerAuth: []
@@ -3005,6 +3005,18 @@ paths:
                   message:
                     type: string
                     example: 'Stage completed successfully'
+                  planCompleted:
+                    type: boolean
+                    example: false
+                    description: Indicates if the entire plan was completed
+                  completedStages:
+                    type: integer
+                    example: 3
+                    description: Number of stages completed
+                  totalStages:
+                    type: integer
+                    example: 5
+                    description: Total number of stages in the plan
         '401':
           description: Unauthorized - Invalid or missing authentication token
           content:
@@ -3019,6 +3031,62 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '400':
           description: Invalid request (e.g., stage not part of user's ongoing plan)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /plans/quitplans/{planId}/complete:
+    put:
+      tags:
+        - QuitPlan
+      summary: Complete a quit plan
+      description: Manually marks a quit plan as completed and awards a badge to the user.
+      operationId: completePlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          description: ID of the quit plan to complete
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Plan completed successfully and badge awarded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Plan completed successfully! Badge awarded.'
+                  data:
+                    type: object
+                    properties:
+                      plan:
+                        $ref: '#/components/schemas/QuitPlan'
+                      badge:
+                        $ref: '#/components/schemas/Badge'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan not found or not ongoing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request (e.g., plan not owned by user or not in ongoing status)
           content:
             application/json:
               schema:
@@ -3127,8 +3195,8 @@ paths:
     post:
       tags:
         - QuitProgress
-      summary: Create a new quit progress
-      description: Creates a new quit progress record for the authenticated user (requires user role).
+      summary: Create daily quit progress
+      description: Creates a new daily quit progress record for the authenticated user (requires user role). System automatically checks if stage is completed when user logs progress for all required days. Only one progress entry per stage per day is allowed.
       operationId: createQuitProgress
       security:
         - BearerAuth: []
@@ -3158,7 +3226,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '400':
-          description: Invalid request data (e.g., missing required fields or invalid stageId)
+          description: Invalid request data (e.g., missing required fields, invalid stageId, or progress already exists for this date)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - Progress for this date already exists
           content:
             application/json:
               schema:
@@ -3362,6 +3436,305 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /quitprogress/stage/{stageId}/stats:
+    get:
+      tags:
+        - QuitProgress
+      summary: Get stage progress statistics
+      description: Retrieves detailed statistics about progress for a specific stage, including completion percentage and daily entries.
+      operationId: getStageProgressStats
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: stageId
+          in: path
+          required: true
+          description: ID of the stage to get statistics for
+          schema:
+            type: string
+            example: 'stage-12345'
+      responses:
+        '200':
+          description: Stage progress statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StageProgressStats'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stage not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid stage ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitprogress/check-failed-plans:
+    post:
+      tags:
+        - QuitProgress
+      summary: Check for failed quit plans
+      description: Checks all ongoing quit plans and automatically marks as failed those that don't meet daily progress requirements (admin only).
+      operationId: checkFailedPlans
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Failed plans check completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Checked failed plans successfully'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /monitor/status:
+    get:
+      tags:
+        - PlanMonitor
+      summary: Get user plan status and risk level
+      description: Retrieves the current plan status and risk assessment for the authenticated user.
+      operationId: getUserPlanStatus
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User plan status and risk level retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Plan status retrieved successfully'
+                  data:
+                    $ref: '#/components/schemas/PlanStatus'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /monitor/alerts:
+    get:
+      tags:
+        - PlanMonitor
+      summary: Get user alerts and notifications
+      description: Retrieves warnings and notifications for the authenticated user based on their plan progress.
+      operationId: getUserAlerts
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User alerts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Alerts retrieved successfully'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Alert'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /monitor/plans-at-risk:
+    get:
+      tags:
+        - PlanMonitor
+      summary: Get plans at risk (Admin only)
+      description: Retrieves all plans that are at risk of failure for admin oversight.
+      operationId: getPlansAtRisk
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: riskLevel
+          in: query
+          description: Filter by risk level
+          schema:
+            type: string
+            enum: ['low', 'medium', 'high', 'critical']
+            example: 'high'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Number of plans per page
+          schema:
+            type: integer
+            minimum: 1
+            example: 10
+      responses:
+        '200':
+          description: Plans at risk retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Plans at risk retrieved successfully'
+                  data:
+                    type: object
+                    properties:
+                      plans:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PlanRiskInfo'
+                      total:
+                        type: integer
+                        example: 15
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /monitor/stats:
+    get:
+      tags:
+        - PlanMonitor
+      summary: Get system-wide statistics (Admin only)
+      description: Retrieves comprehensive statistics about all plans in the system for admin dashboard.
+      operationId: getSystemStats
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: System statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'System statistics retrieved successfully'
+                  data:
+                    $ref: '#/components/schemas/SystemStats'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /monitor/trigger-check:
+    post:
+      tags:
+        - PlanMonitor
+      summary: Trigger emergency plan check (Admin only)
+      description: Manually triggers an emergency check of all ongoing plans to identify and mark failed plans.
+      operationId: triggerEmergencyCheck
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Emergency check triggered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Emergency check triggered successfully'
+                  data:
+                    type: object
+                    properties:
+                      checkedPlans:
+                        type: integer
+                        example: 25
+                      failedPlans:
+                        type: integer
+                        example: 3
+                      timestamp:
+                        type: string
+                        format: date-time
+                        example: '2025-01-21T10:30:00.000Z'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   securitySchemes:
@@ -4367,6 +4740,45 @@ components:
           type: string
           example: 'Updated notes'
           description: Optional notes about the progress
+    StageProgressStats:
+      type: object
+      properties:
+        stage:
+          $ref: '#/components/schemas/QuitPlanStage'
+          description: Details of the stage
+        totalDays:
+          type: integer
+          example: 7
+          description: Total number of days required for this stage
+        completedDays:
+          type: integer
+          example: 5
+          description: Number of days user has logged progress
+        remainingDays:
+          type: integer
+          example: 2
+          description: Number of days remaining to complete the stage
+        completionPercentage:
+          type: integer
+          example: 71
+          description: Percentage of completion (0-100)
+        isCompleted:
+          type: boolean
+          example: false
+          description: Whether the stage has been completed
+        progressEntries:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuitProgress'
+          description: List of all progress entries for this stage
+      required:
+        - stage
+        - totalDays
+        - completedDays
+        - remainingDays
+        - completionPercentage
+        - isCompleted
+        - progressEntries
     Blog:
       type: object
       properties:
@@ -4532,3 +4944,235 @@ components:
           example: 'Bài viết rất hữu ích!'
       required:
         - comment
+    PlanStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ['template', 'pending', 'ongoing', 'completed', 'failed']
+          example: 'ongoing'
+          description: Current status of the user's quit plan
+        riskLevel:
+          type: string
+          enum: ['none', 'low', 'medium', 'high', 'critical']
+          example: 'medium'
+          description: Risk level assessment for plan failure
+        currentPlan:
+          $ref: '#/components/schemas/QuitPlan'
+          nullable: true
+          description: User's current active quit plan
+        daysSinceLastUpdate:
+          type: integer
+          example: 2
+          description: Number of days since last progress update
+        missedDays:
+          type: integer
+          example: 1
+          description: Number of missed daily updates
+        consecutiveMissedDays:
+          type: integer
+          example: 1
+          description: Number of consecutive missed days
+        totalStages:
+          type: integer
+          example: 5
+          description: Total number of stages in the plan
+        completedStages:
+          type: integer
+          example: 2
+          description: Number of completed stages
+        progressPercentage:
+          type: number
+          format: float
+          example: 40.0
+          description: Overall progress percentage
+        recommendation:
+          type: string
+          example: 'Hãy cập nhật tiến độ hằng ngày để tránh thất bại'
+          description: Recommendation for the user
+      required:
+        - status
+        - riskLevel
+        - daysSinceLastUpdate
+        - missedDays
+        - consecutiveMissedDays
+        - progressPercentage
+    Alert:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: ['warning', 'danger', 'info', 'success']
+          example: 'warning'
+          description: Type of alert
+        level:
+          type: string
+          enum: ['low', 'medium', 'high', 'critical']
+          example: 'medium'
+          description: Severity level of the alert
+        title:
+          type: string
+          example: 'Cảnh báo: Chưa cập nhật tiến độ'
+          description: Alert title
+        message:
+          type: string
+          example: 'Bạn chưa cập nhật tiến độ trong 2 ngày. Hãy cập nhật ngay để tránh thất bại.'
+          description: Detailed alert message
+        actionRequired:
+          type: boolean
+          example: true
+          description: Whether immediate action is required
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-01-21T10:30:00.000Z'
+          description: When the alert was generated
+      required:
+        - type
+        - level
+        - title
+        - message
+        - actionRequired
+        - createdAt
+    PlanRiskInfo:
+      type: object
+      properties:
+        plan:
+          $ref: '#/components/schemas/QuitPlan'
+          description: The quit plan at risk
+        user:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: '54321'
+            userName:
+              type: string
+              example: 'john_doe'
+            email:
+              type: string
+              format: email
+              example: 'john@example.com'
+          description: User information for the plan
+        riskLevel:
+          type: string
+          enum: ['low', 'medium', 'high', 'critical']
+          example: 'high'
+          description: Risk level of plan failure
+        daysSinceLastUpdate:
+          type: integer
+          example: 4
+          description: Days since last progress update
+        missedDays:
+          type: integer
+          example: 3
+          description: Total missed days
+        consecutiveMissedDays:
+          type: integer
+          example: 2
+          description: Consecutive missed days
+        progressPercentage:
+          type: number
+          format: float
+          example: 25.5
+          description: Overall progress percentage
+        lastUpdateDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2025-01-17T10:30:00.000Z'
+          description: Date of last progress update
+        riskFactors:
+          type: array
+          items:
+            type: string
+          example: ['Không cập nhật tiến độ', 'Vượt quá 3 ngày liên tiếp']
+          description: List of risk factors identified
+      required:
+        - plan
+        - user
+        - riskLevel
+        - daysSinceLastUpdate
+        - missedDays
+        - consecutiveMissedDays
+        - progressPercentage
+        - riskFactors
+    SystemStats:
+      type: object
+      properties:
+        totalPlans:
+          type: integer
+          example: 150
+          description: Total number of quit plans in system
+        ongoingPlans:
+          type: integer
+          example: 45
+          description: Number of ongoing plans
+        completedPlans:
+          type: integer
+          example: 80
+          description: Number of completed plans
+        failedPlans:
+          type: integer
+          example: 25
+          description: Number of failed plans
+        plansAtRisk:
+          type: object
+          properties:
+            low:
+              type: integer
+              example: 10
+            medium:
+              type: integer
+              example: 8
+            high:
+              type: integer
+              example: 5
+            critical:
+              type: integer
+              example: 2
+          description: Number of plans at each risk level
+        averageCompletionRate:
+          type: number
+          format: float
+          example: 76.2
+          description: Average completion rate percentage
+        totalUsers:
+          type: integer
+          example: 300
+          description: Total number of users
+        activeUsers:
+          type: integer
+          example: 120
+          description: Number of users with ongoing plans
+        dailyProgressUpdates:
+          type: integer
+          example: 35
+          description: Number of progress updates today
+        recentFailures:
+          type: integer
+          example: 3
+          description: Number of plans that failed in last 24 hours
+        systemHealth:
+          type: string
+          enum: ['excellent', 'good', 'warning', 'critical']
+          example: 'good'
+          description: Overall system health status
+        lastCheckedAt:
+          type: string
+          format: date-time
+          example: '2025-01-21T10:30:00.000Z'
+          description: Last time statistics were calculated
+      required:
+        - totalPlans
+        - ongoingPlans
+        - completedPlans
+        - failedPlans
+        - plansAtRisk
+        - averageCompletionRate
+        - totalUsers
+        - activeUsers
+        - dailyProgressUpdates
+        - recentFailures
+        - systemHealth
+                 - lastCheckedAt
