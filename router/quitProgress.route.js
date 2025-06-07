@@ -9,4 +9,8 @@ router.get('/:id', authMiddleware, restrictTo('user'), quitProgressController.ge
 router.put('/:id', authMiddleware, restrictTo('user'), quitProgressController.updateQuitProgress)
 router.delete('/:id', authMiddleware, restrictTo('user'), quitProgressController.deleteQuitProgress)
 
+router.get('/stage/:stageId/stats', authMiddleware, restrictTo('user'), quitProgressController.getStageProgressStats)
+
+router.post('/check-failed-plans', authMiddleware, restrictTo('admin'), quitProgressController.checkFailedPlans)
+
 module.exports = router;

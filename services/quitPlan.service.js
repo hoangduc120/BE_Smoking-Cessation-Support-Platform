@@ -238,18 +238,46 @@ class QuitPlanService {
 
       const allStages = await QuitPlanStage.find({ quitPlanId: plan._id });
       const allCompleted = allStages.every(s => s.completed);
+
+      let message = "Stage completed successfully";
+      let planCompleted = false;
+
       if (allCompleted) {
-        plan.status = "completed";
-        await plan.save();
+        await this.completePlan(plan._id, userId);
+        message = "Plan completed successfully! Badge awarded.";
+        planCompleted = true;
       }
 
-      await this.awardBadgeToQuitPlan(plan._id, {
-        name: "Stage Completed",
-        description: `Completed stage: ${stage.stage_name}`,
-      })
-      return { success: true, message: "Stage completed successfully" };
+      return {
+        success: true,
+        message,
+        planCompleted,
+        completedStages: allStages.filter(s => s.completed).length,
+        totalStages: allStages.length
+      };
     } catch (error) {
-      throw new Error('Failed to complete stage');
+      throw new Error(`Failed to complete stage: ${error.message}`);
+    }
+  }
+
+  async completePlan(planId, userId) {
+    try {
+      const plan = await QuitPlan.findOne({ _id: planId, userId, status: "ongoing" });
+      if (!plan) {
+        throw new Error('Quit plan not found or not ongoing');
+      }
+      plan.status = "completed";
+      await plan.save();
+
+      const badge = await this.awardBadgeToQuitPlan(plan._id, {
+        name: "Plan Completed",
+        description: `Hoàn thành kế hoạch cai thuốc: ${plan.title}`,
+        icon_url: "/badges/plan-completed.png"
+      }, userId);
+
+      return { plan, badge };
+    } catch (error) {
+      throw new Error(`Failed to complete plan: ${error.message}`);
     }
   }
   async failQuitPlan(planId, userId) {

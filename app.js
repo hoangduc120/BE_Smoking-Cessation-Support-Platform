@@ -9,6 +9,7 @@ const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const { swaggerUi, swaggerSpec } = require("./configs/swagger");
 const MembershipScheduler = require("./utils/membershipScheduler");
+const { startFailedPlansChecker } = require("./cron/checkFailedPlans");
 
 const app = express();
 
@@ -46,7 +47,9 @@ const appRoutes = require("./router/appRoutes");
 app.use("/", appRoutes);
 
 
+// Initialize schedulers
 MembershipScheduler.initScheduler();
+startFailedPlansChecker();
 
 // Error handling
 app.use((req, res, next) => {

@@ -49,6 +49,29 @@ class QuitProgressController {
             res.status(500).json({ message: error.message })
         }
     }
+
+    async getStageProgressStats(req, res) {
+        try {
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" })
+            }
+            const userId = req.user._id
+            const { stageId } = req.params
+            const stats = await quitProgressService.getStageProgressStats(stageId, userId)
+            res.json(stats)
+        } catch (error) {
+            res.status(500).json({ message: error.message })
+        }
+    }
+
+    async checkFailedPlans(req, res) {
+        try {
+            await quitProgressService.checkFailedPlans()
+            res.json({ message: "Checked failed plans successfully" })
+        } catch (error) {
+            res.status(500).json({ message: error.message })
+        }
+    }
 }
 
 module.exports = new QuitProgressController()

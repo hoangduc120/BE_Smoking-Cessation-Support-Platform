@@ -23,6 +23,7 @@ router.post('/quitplans/:quitPlanId/stages', authMiddleware, restrictTo('coach')
 router.get('/quitplans/:quitPlanId/stages', authMiddleware, quitPlanController.getQuitPlanStages);
 router.put('/quitplan-stages/:id', authMiddleware, restrictTo('coach'), quitPlanController.updateQuitPlanStage);
 router.put('/quitplan-stages/:id/complete', authMiddleware, restrictTo('user'), quitPlanController.completeStage);
+router.put('/quitplans/:planId/complete', authMiddleware, restrictTo('user'), quitPlanController.completePlan);
 router.delete('/quitplan-stages/:id', authMiddleware, restrictTo('coach', 'admin'), quitPlanController.deleteQuitPlanStage);
 
 // Badge routes
