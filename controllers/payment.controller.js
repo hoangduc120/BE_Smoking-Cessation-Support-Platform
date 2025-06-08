@@ -1,52 +1,82 @@
-const PaymentService = require('../services/payment.service');
+const PaymentService = require("../services/payment.service");
+
 
 class PaymentController {
-    // Tạo URL thanh toán từ VNPay
-    async createPaymentUrl(req, res) {
+    static async createPaymentUrl(req, res) {
         try {
-            const { userMembershipId } = req.body;
-            const ipAddr = req.headers['x-forwarded-for'] ||
-                req.connection.remoteAddress ||
-                req.socket.remoteAddress ||
-                req.connection.socket.remoteAddress;
+            const { memberShipPlanId, paymentMethod, amount } = req.body;
+            const userId = req.user.id; // Lấy userId từ middleware authentication
 
-            if (!userMembershipId) {
+            // Validation cơ bản
+            if (!userId || !memberShipPlanId || !paymentMethod || !amount) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Thiếu thông tin đăng ký gói thành viên'
+                    message: "Missing required fields: memberShipPlanId, paymentMethod, amount"
                 });
             }
 
-            const paymentUrl = await PaymentService.createPaymentUrl(userMembershipId, ipAddr);
+            if (amount <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Amount must be greater than 0"
+                });
+            }
+
+            const { order, payment } = await PaymentService.createOrderAndPayment(
+                userId,
+                memberShipPlanId,
+                paymentMethod,
+                amount
+            );
+
+            let paymentUrl;
+            if (paymentMethod === "vnpay") {
+                paymentUrl = await PaymentService.createVnpayPaymentUrl(
+                    order._id,
+                    amount,
+                    req.ip,
+                );
+            } else if (paymentMethod === "momo") {
+                paymentUrl = await PaymentService.createMomoPaymentUrl(order._id, amount);
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid payment method. Use 'vnpay' or 'momo'"
+                });
+            }
 
             res.status(200).json({
                 success: true,
-                message: 'Tạo URL thanh toán thành công',
-                data: { paymentUrl }
+                paymentUrl,
+                orderId: order._id,
+                orderCode: order.orderCode
             });
         } catch (error) {
+            console.error("Payment URL creation error:", error);
             res.status(500).json({
                 success: false,
                 message: error.message
             });
         }
     }
-
-    // Xử lý callback từ VNPay
-    async paymentCallback(req, res) {
+    static async handleVnpayCallBack(req, res) {
         try {
-            const vnpayParams = req.query;
-            const result = await PaymentService.verifyPaymentReturn(vnpayParams);
-
-            // Chuyển hướng về trang client với kết quả thanh toán
-            if (process.env.CLIENT_REDIRECT_URL) {
-                const redirectUrl = `${process.env.CLIENT_REDIRECT_URL}?success=${result.success}&message=${encodeURIComponent(result.message)}`;
-                return res.redirect(redirectUrl);
-            }
-
-            // Nếu không có URL redirect, trả về kết quả dạng JSON
+            const result = await PaymentService.verifyVnpayCallBack(req.query);
             res.status(200).json(result);
         } catch (error) {
+            console.error("VNPay callback error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+    static async handleMomoCallBack(req, res) {
+        try {
+            const result = await PaymentService.verifyMomoCallBack(req.body);
+            res.status(200).json(result);
+        } catch (error) {
+            console.error("MoMo callback error:", error);
             res.status(500).json({
                 success: false,
                 message: error.message
@@ -54,30 +84,37 @@ class PaymentController {
         }
     }
 
-    // API endpoint để kiểm tra trạng thái thanh toán (cho client polling)
-    async checkPaymentStatus(req, res) {
+    static async getPaymentStatus(req, res) {
         try {
-            const { userMembershipId } = req.params;
-            const UserMembership = require('../models/userMemberShip.model');
+            const { orderId } = req.params;
+            const userId = req.user.id;
 
-            const membership = await UserMembership.findById(userMembershipId);
-
-            if (!membership) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Không tìm thấy thông tin đăng ký gói thành viên'
-                });
-            }
-
+            const result = await PaymentService.getPaymentStatus(orderId, userId);
             res.status(200).json({
                 success: true,
-                message: 'Lấy trạng thái thanh toán thành công',
-                data: {
-                    paymentStatus: membership.paymentStatus,
-                    userMembershipId: membership._id
-                }
+                data: result
             });
         } catch (error) {
+            console.error("Get payment status error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    static async getPaymentHistory(req, res) {
+        try {
+            const userId = req.user.id;
+            const { page = 1, limit = 10 } = req.query;
+
+            const result = await PaymentService.getPaymentHistory(userId, parseInt(page), parseInt(limit));
+            res.status(200).json({
+                success: true,
+                data: result
+            });
+        } catch (error) {
+            console.error("Get payment history error:", error);
             res.status(500).json({
                 success: false,
                 message: error.message
@@ -85,5 +122,4 @@ class PaymentController {
         }
     }
 }
-
-module.exports = new PaymentController(); 
+module.exports = PaymentController;

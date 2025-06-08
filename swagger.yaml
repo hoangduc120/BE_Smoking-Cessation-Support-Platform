@@ -1945,12 +1945,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /payments/create-payment:
+  /payments/create-payment-url:
     post:
       tags:
         - Payment
       summary: Create payment URL
-      description: Generates a payment URL for a user membership (requires authentication).
+      description: Generates a payment URL for a membership plan purchase (requires authentication).
       operationId: createPaymentUrl
       security:
         - BearerAuth: []
@@ -1968,86 +1968,169 @@ paths:
               schema:
                 type: object
                 properties:
+                  success:
+                    type: boolean
+                    example: true
                   paymentUrl:
                     type: string
                     format: uri
                     example: 'https://vnpay.vn/payment/12345'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                  orderId:
+                    type: string
+                    example: '60f7b3b3b3b3b3b3b3b3b3b3'
+                  orderCode:
+                    type: string
+                    example: 'ORDER-1642771200000-123456'
         '400':
           description: Invalid request data
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /payments/vnpay-return:
-    get:
-      tags:
-        - Payment
-      summary: Handle payment callback
-      description: Handles the callback from VNPay after payment processing.
-      operationId: paymentCallback
-      parameters:
-        - name: vnp_TxnRef
-          in: query
-          required: true
-          schema:
-            type: string
-            example: 'txn-12345'
-        - name: vnp_ResponseCode
-          in: query
-          required: true
-          schema:
-            type: string
-            example: '00'
-      responses:
-        '200':
-          description: Payment processed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-        '400':
-          description: Payment failed or invalid callback
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /payments/check-status/{userMembershipId}:
+  /payments/vnpay-callback:
     get:
       tags:
         - Payment
-      summary: Check payment status
-      description: Checks the payment status for a user membership (requires authentication).
-      operationId: checkPaymentStatus
-      security:
-        - BearerAuth: []
+      summary: Handle VNPay payment callback
+      description: Handles the callback from VNPay after payment processing.
+      operationId: handleVnpayCallback
       parameters:
-        - name: userMembershipId
-          in: path
+        - name: vnp_TxnRef
+          in: query
           required: true
+          description: Order code from VNPay
           schema:
             type: string
-            example: 'mem-12345'
+            example: 'ORDER-1642771200000-123456'
+        - name: vnp_ResponseCode
+          in: query
+          required: true
+          description: Response code from VNPay (00 = success)
+          schema:
+            type: string
+            example: '00'
+        - name: vnp_TransactionNo
+          in: query
+          required: false
+          description: Transaction number from VNPay
+          schema:
+            type: string
+            example: '14027712'
+        - name: vnp_Amount
+          in: query
+          required: false
+          description: Payment amount
+          schema:
+            type: string
+            example: '2999900'
       responses:
         '200':
-          description: Payment status retrieved
+          description: Payment callback processed successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  status:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
                     type: string
-                    enum:
-                      - pending
-                      - completed
-                      - failed
-                    example: 'completed'
+                    example: 'Payment verified successfully'
+        '500':
+          description: Payment verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /payments/momo-callback:
+    post:
+      tags:
+        - Payment
+      summary: Handle MoMo payment callback
+      description: Handles the callback from MoMo after payment processing.
+      operationId: handleMomoCallback
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orderId:
+                  type: string
+                  example: 'ORDER-1642771200000-123456'
+                resultCode:
+                  type: string
+                  example: '0'
+                amount:
+                  type: number
+                  example: 29999
+                transactionId:
+                  type: string
+                  example: '2744180497'
+                signature:
+                  type: string
+                  example: 'abc123signature'
+                requestId:
+                  type: string
+                  example: 'MOMO1642771200000'
+        required: true
+      responses:
+        '200':
+          description: Payment callback processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Payment verified successfully'
+        '500':
+          description: Payment verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /payments/status/{orderId}:
+    get:
+      tags:
+        - Payment
+      summary: Check payment status
+      description: Checks the payment status for a specific order (requires authentication).
+      operationId: getPaymentStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: ID of the order to check status
+          schema:
+            type: string
+            example: '60f7b3b3b3b3b3b3b3b3b3b3'
+      responses:
+        '200':
+          description: Payment status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PaymentStatusResponse'
         '401':
           description: Unauthorized
           content:
@@ -2055,7 +2138,51 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: Membership not found
+          description: Order not found or access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /payments/history:
+    get:
+      tags:
+        - Payment
+      summary: Get payment history
+      description: Retrieves payment history for the authenticated user with pagination.
+      operationId: getPaymentHistory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Number of payments per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            example: 10
+      responses:
+        '200':
+          description: Payment history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PaymentHistoryResponse'
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -4212,12 +4339,153 @@ components:
     PaymentCreateRequest:
       type: object
       properties:
-        userMembershipId:
+        memberShipPlanId:
           type: string
-          example: 'membership-12345'
-          description: ID of the user membership to create payment for
+          example: 'plan-001'
+          description: ID of the membership plan to purchase
+        paymentMethod:
+          type: string
+          enum: ['vnpay', 'momo']
+          example: 'vnpay'
+          description: Payment method to use
+        amount:
+          type: number
+          minimum: 1
+          example: 29999
+          description: Payment amount in VND (without decimal points)
       required:
-        - userMembershipId
+        - memberShipPlanId
+        - paymentMethod
+        - amount
+    PaymentStatusResponse:
+      type: object
+      properties:
+        order:
+          type: object
+          properties:
+            id:
+              type: string
+              example: '60f7b3b3b3b3b3b3b3b3b3b3'
+            orderCode:
+              type: string
+              example: 'ORDER-1642771200000-123456'
+            status:
+              type: string
+              enum: ['pending', 'processing', 'completed', 'cancelled']
+              example: 'completed'
+            totalAmount:
+              type: number
+              example: 29999
+            createdAt:
+              type: string
+              format: date-time
+              example: '2025-01-21T10:30:00.000Z'
+            memberShipPlan:
+              $ref: '#/components/schemas/MembershipPlan'
+        payment:
+          type: object
+          properties:
+            id:
+              type: string
+              example: '60f7b3b3b3b3b3b3b3b3b3b4'
+            paymentMethod:
+              type: string
+              enum: ['vnpay', 'momo']
+              example: 'vnpay'
+            status:
+              type: string
+              enum: ['pending', 'processing', 'success', 'failed', 'cancelled']
+              example: 'success'
+            amount:
+              type: number
+              example: 29999
+            transactionId:
+              type: string
+              nullable: true
+              example: '14027712'
+            paymentDate:
+              type: string
+              format: date-time
+              example: '2025-01-21T10:30:00.000Z'
+      required:
+        - order
+        - payment
+    PaymentHistoryResponse:
+      type: object
+      properties:
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentHistoryItem'
+        pagination:
+          type: object
+          properties:
+            currentPage:
+              type: integer
+              example: 1
+            totalPages:
+              type: integer
+              example: 5
+            totalRecords:
+              type: integer
+              example: 47
+            limit:
+              type: integer
+              example: 10
+      required:
+        - payments
+        - pagination
+    PaymentHistoryItem:
+      type: object
+      properties:
+        order:
+          type: object
+          properties:
+            id:
+              type: string
+              example: '60f7b3b3b3b3b3b3b3b3b3b3'
+            orderCode:
+              type: string
+              example: 'ORDER-1642771200000-123456'
+            status:
+              type: string
+              enum: ['pending', 'processing', 'completed', 'cancelled']
+              example: 'completed'
+            totalAmount:
+              type: number
+              example: 29999
+            createdAt:
+              type: string
+              format: date-time
+              example: '2025-01-21T10:30:00.000Z'
+            memberShipPlan:
+              $ref: '#/components/schemas/MembershipPlan'
+        payment:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              example: '60f7b3b3b3b3b3b3b3b3b3b4'
+            paymentMethod:
+              type: string
+              enum: ['vnpay', 'momo']
+              example: 'vnpay'
+            status:
+              type: string
+              enum: ['pending', 'processing', 'success', 'failed', 'cancelled']
+              example: 'success'
+            amount:
+              type: number
+              example: 29999
+            transactionId:
+              type: string
+              nullable: true
+              example: '14027712'
+            paymentDate:
+              type: string
+              format: date-time
+              example: '2025-01-21T10:30:00.000Z'
     Survey:
       type: object
       properties:

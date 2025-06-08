@@ -13,7 +13,7 @@ const startFailedPlansChecker = () => {
     });
 
     cron.schedule('0 */6 * * *', async () => {
-        console.log('🔍 Regular check for failed quit plans...');
+        console.log('Regular check for failed quit plans...');
         try {
             await quitProgressService.checkFailedPlans();
             console.log('Regular failed plans check completed');
