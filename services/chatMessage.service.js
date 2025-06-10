@@ -80,17 +80,29 @@ class ChatMessageService {
 
             await newMessage.save();
 
-            // Populate sender và receiver info cho message mới
             const populatedMessage = await ChatMessage.findById(newMessage._id)
                 .populate('senderId', 'userName profilePicture')
                 .populate('receiverId', 'userName profilePicture');
 
-            // Gửi tin nhắn qua socket nếu receiver online
             const receiverSocketId = socketStore.getReceiverSocketId(receiverId);
+            const senderSocketId = socketStore.getReceiverSocketId(senderId);
             const io = socketStore.getIo();
 
-            if (receiverSocketId && io) {
-                io.to(receiverSocketId).emit('newMessage', populatedMessage);
+            if (io) {
+                if (receiverSocketId) {
+                    io.to(receiverSocketId).emit('newMessage', populatedMessage);
+                }
+
+                if (senderSocketId) {
+                    io.to(senderSocketId).emit('messageSent', {
+                        tempId: newMessage._id,
+                        message: populatedMessage,
+                        status: 'sent'
+                    });
+                }
+
+                const conversationId = [senderId, receiverId].sort().join('_');
+                io.to(`conversation_${conversationId}`).emit('newMessage', populatedMessage);
             }
 
             return populatedMessage;

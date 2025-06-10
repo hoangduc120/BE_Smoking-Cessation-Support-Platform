@@ -93,11 +93,8 @@ class QuitProgressService {
                 }
             });
 
-            console.log(`Stage ${stage.stage_name}: ${progressCount}/${totalDays} days completed`);
-
             if (progressCount >= totalDays) {
                 await quitPlanService.completeStage(stageId, userId);
-                console.log(`Stage ${stage.stage_name} auto-completed!`);
             }
         } catch (error) {
             console.error('Error in checkAndCompleteStage:', error);
@@ -145,8 +142,7 @@ class QuitProgressService {
 
                     if (progressCount < totalDays) {
                         await quitPlanService.failQuitPlan(planId, userId);
-                        console.log(`Plan ${planId} failed due to insufficient progress in stage ${stage.stage_name}`);
-                        return true; // Plan đã bị fail
+                        return true;
                     }
                 }
 

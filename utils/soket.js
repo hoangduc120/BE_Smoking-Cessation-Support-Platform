@@ -15,15 +15,12 @@ const initializeSocket = (app) => {
     socketStore.setIo(io);
 
     io.on("connection", (socket) => {
-        console.log("new connection", socket.id);
-
         const userId = socket.handshake.query.userId;
         if (userId) socketStore.setSocketId(userId, socket.id);
 
         io.emit("getOnLineUsers", socketStore.getAllOnlineUsers());
 
         socket.on("disconnect", () => {
-            console.log("user disconnected", socket.id);
             socketStore.removeSocketId(userId);
             io.emit("getOnLineUsers", socketStore.getAllOnlineUsers());
         });

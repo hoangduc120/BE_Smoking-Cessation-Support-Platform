@@ -23,10 +23,7 @@ class SurveyController {
     async getSurveyById(req, res) {
         try {
             const { surveyId } = req.params;
-            console.log(`Attempting to get survey with ID: ${surveyId}`);
-
             if (!surveyId || !mongoose.Types.ObjectId.isValid(surveyId)) {
-                console.log(`Invalid survey ID format: ${surveyId}`);
                 return BAD_REQUEST(res, "Invalid survey ID format");
             }
 
