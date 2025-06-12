@@ -19,22 +19,18 @@ const initializeSocket = (app) => {
         const token = socket.handshake.auth.token;
 
         const isDebugMode = socket.handshake.query.debug === 'true';
-        console.log('Socket auth middleware:', { token: !!token, isDebugMode });
 
         try {
             if (isDebugMode && socket.handshake.query.userId) {
-                console.log('DEBUG MODE: Bypassing authentication for', socket.handshake.query.userId);
                 socket.userId = socket.handshake.query.userId;
                 return next();
             }
 
             if (!token) {
-                console.log('No token provided - auth error');
                 return next(new Error("Authentication error - No token"));
             }
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            console.log('Token decoded:', decoded);
             socket.userId = decoded.id;
             next();
         } catch (error) {
@@ -44,7 +40,6 @@ const initializeSocket = (app) => {
     })
 
     io.on("connection", (socket) => {
-        console.log("new connection", socket.id);
 
         const userId = socket.userId;
         if (userId) socketStore.setSocketId(userId, socket.id);
@@ -80,7 +75,6 @@ const initializeSocket = (app) => {
         });
 
         socket.on("disconnect", () => {
-            console.log("user disconnected", socket.id);
             socketStore.removeSocketId(userId);
             io.emit("getOnLineUsers", socketStore.getAllOnlineUsers());
         });
