@@ -6,6 +6,9 @@ const { authMiddleware, restrictTo } = require('../middlewares/authMiddleware');
 // Get users for sidebar
 router.get("/users", authMiddleware, chatMessageController.getUserForSidebar);
 
+
+router.get("/search-users", authMiddleware, chatMessageController.searchUsers);
+
 // Get conversations
 router.get("/conversations", authMiddleware, chatMessageController.getConversations);
 
