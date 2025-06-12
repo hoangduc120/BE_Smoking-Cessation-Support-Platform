@@ -6,8 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon server.js",
-    "build": "npm install && npm install -g nodemon",
-    "start": "node server.js"
+    "build": "npm install",
+    "start": "node server.js" 
   },
   "repository": {
     "type": "git",
