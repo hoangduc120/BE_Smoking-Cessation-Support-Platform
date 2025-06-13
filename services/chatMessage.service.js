@@ -66,8 +66,15 @@ class ChatMessageService {
 
             let imageUrl = null;
             if (image) {
-                const uploadResponse = await cloudinary.uploader.upload(image);
-                imageUrl = uploadResponse.secure_url;
+                // Kiểm tra xem image đã là URL từ Cloudinary (từ multer upload) hay là base64
+                if (image.startsWith('http')) {
+                    // Đã là URL từ Cloudinary
+                    imageUrl = image;
+                } else {
+                    // Là base64, cần upload lên Cloudinary
+                    const uploadResponse = await cloudinary.uploader.upload(image);
+                    imageUrl = uploadResponse.secure_url;
+                }
             }
 
             const newMessage = new ChatMessage({

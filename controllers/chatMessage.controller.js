@@ -23,11 +23,21 @@ class ChatMessageController {
 
     sendMessage = catchAsync(async (req, res) => {
         const { receiverId } = req.params;
-        const { text, image } = req.body;
+        const { text } = req.body;
         const senderId = req.id;
 
         if (!receiverId) {
             return BAD_REQUEST(res, "Receiver ID is required");
+        }
+
+        // Lấy file image từ multer upload hoặc từ body (base64)
+        let image = null;
+        if (req.file) {
+            // File được upload qua multer - lấy đường dẫn Cloudinary
+            image = req.file.path;
+        } else if (req.body.image) {
+            // Hình ảnh base64 từ body
+            image = req.body.image;
         }
 
         if (!text && !image) {
