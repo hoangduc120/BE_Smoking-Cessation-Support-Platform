@@ -33,7 +33,7 @@ app.use(
         secret: "your_secret_key",
         resave: false,
         saveUninitialized: false,
-        cookie: { secure: false },
+        cookie: { secure: true, sameSite: 'none' },
     })
 );
 app.use(passport.initialize());
