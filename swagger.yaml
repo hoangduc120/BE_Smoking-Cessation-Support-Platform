@@ -1,6 +1,8 @@
 openapi: 3.0.0
 servers:
-  - description: QuitSmoke API
+  - description: QuitSmoke API - Production
+    url: https://quit-smoke-smoking.onrender.com
+  - description: QuitSmoke API - Development
     url: http://localhost:5000
 info:
   version: "1.0.0"
