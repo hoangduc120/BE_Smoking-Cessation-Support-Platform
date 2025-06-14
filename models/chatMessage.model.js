@@ -27,6 +27,15 @@ var chatMessageSchema = new mongoose.Schema({
         default: false,
         index: true,
     },
+    lastMessage: {
+        type: String,
+        default: null,
+    },
+    lastMessageAt: {
+        type: Date,
+        default: Date.now,
+        index: true,
+    }
 }, { timestamps: true });
 
 // Validation: Ít nhất phải có text hoặc image

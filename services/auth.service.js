@@ -52,7 +52,6 @@ class AuthService {
 
     try {
       const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-      console.log(decoded);
       const newAccessToken = jwt.sign(
         { id: user._id, email: user.email, role: user.role },
         process.env.JWT_SECRET,
@@ -106,7 +105,6 @@ class AuthService {
     const resetToken = await user.createPasswordChangedToken();
     await user.save();
 
-    console.log('Reset Token:', resetToken);
 
     const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -131,7 +129,7 @@ class AuthService {
       success: true,
       message: "Reset password email sent successfully",
       rs,
-      resetToken // Chỉ để test, trong production nên remove
+      resetToken
     };
   }
 
@@ -156,7 +154,6 @@ class AuthService {
       });
     }
 
-    // Hash password mới
     const hashedPassword = await bcrypt.hash(password, 10);
 
     user.password = hashedPassword;
