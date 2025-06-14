@@ -77,7 +77,7 @@ class BlogService {
 
         const blogs = await Blog.find(query)
             .select('_id slug title description image tags createdAt user likes comments')
-            .populate("user", "name email")
+            .populate("user", "userName email profilePicture")
             .populate({
                 path: "tags",
                 select: "tagId tagName"
@@ -102,12 +102,12 @@ class BlogService {
             isDeleted: false,
             isHidden: false
         })
-            .populate("user", "name email")
+            .populate("user", "userName email profilePicture")
             .populate({
                 path: "comments",
                 populate: {
                     path: "author",
-                    select: "name email"
+                    select: "userName email profilePicture"
                 }
             })
             .populate("tags", "tagId tagName")
