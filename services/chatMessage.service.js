@@ -9,7 +9,6 @@ const QuitPlan = require("../models/quitPlan.model");
 class ChatMessageService {
     async getUsersForSidebar(loggedInUserId) {
         try {
-            // Lấy tất cả user active (trừ chính user đang đăng nhập)
             const allUsers = await User.find({
                 _id: { $ne: loggedInUserId },
                 isActive: true,
@@ -45,7 +44,6 @@ class ChatMessageService {
                 .populate('receiverId', 'userName profilePicture')
                 .sort({ createdAt: 1 });
 
-            // Đánh dấu tin nhắn là đã đọc
             await ChatMessage.updateMany(
                 { senderId: receiverId, receiverId: myId, isRead: false },
                 { isRead: true }
@@ -86,6 +84,22 @@ class ChatMessageService {
             });
 
             await newMessage.save();
+
+            const lastMessageText = text || (imageUrl ? "Đã gửi một hình ảnh" : "");
+            const now = new Date();
+
+            await ChatMessage.updateMany(
+                {
+                    $or: [
+                        { senderId: senderId, receiverId: receiverId },
+                        { senderId: receiverId, receiverId: senderId }
+                    ]
+                },
+                {
+                    lastMessage: lastMessageText,
+                    lastMessageAt: now
+                }
+            );
 
             const populatedMessage = await ChatMessage.findById(newMessage._id)
                 .populate('senderId', 'userName profilePicture')
@@ -153,7 +167,6 @@ class ChatMessageService {
                 throw new Error('Message not found');
             }
 
-            // Chỉ người gửi mới có thể xóa tin nhắn
             if (message.senderId.toString() !== userId.toString()) {
                 throw new Error('You can only delete your own messages');
             }
@@ -167,7 +180,12 @@ class ChatMessageService {
 
     async getConversations(userId) {
         try {
-            // Lấy danh sách conversations của user
+            const allUsers = await User.find({
+                _id: { $ne: userId },
+                isActive: true,
+                isDeleted: false,
+            }).select('userName profilePicture role');
+
             const conversations = await ChatMessage.aggregate([
                 {
                     $match: {
@@ -189,7 +207,9 @@ class ChatMessageService {
                                 '$senderId'
                             ]
                         },
-                        lastMessage: { $first: '$$ROOT' },
+                        lastMessageData: { $first: '$$ROOT' },
+                        lastMessage: { $first: '$lastMessage' },
+                        lastMessageAt: { $first: '$lastMessageAt' },
                         unreadCount: {
                             $sum: {
                                 $cond: [
@@ -208,18 +228,29 @@ class ChatMessageService {
                 }
             ]);
 
-            // Populate user information
-            const populatedConversations = await User.populate(conversations, {
-                path: '_id',
-                select: 'userName profilePicture role'
+            const conversationMap = new Map();
+            conversations.forEach(conv => {
+                conversationMap.set(conv._id.toString(), conv);
             });
 
-            return populatedConversations.map(conv => ({
-                user: conv._id,
-                lastMessage: conv.lastMessage,
-                unreadCount: conv.unreadCount
-            }));
+            const result = allUsers.map(user => {
+                const conversation = conversationMap.get(user._id.toString());
+
+                const conversationData = {
+                    user: user,
+                    lastMessage: conversation?.lastMessageData || null,
+                    unreadCount: conversation?.unreadCount || 0,
+                    lastMessageText: conversation?.lastMessage || "Chưa có tin nhắn",
+                    lastMessageAt: conversation?.lastMessageAt || null
+                };
+
+
+                return conversationData;
+            });
+
+            return result;
         } catch (error) {
+            console.error('Error in getConversations:', error);
             throw new Error(error.message);
         }
     }
