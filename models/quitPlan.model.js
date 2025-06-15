@@ -10,7 +10,7 @@ var quitplanSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    default: null, // null khi là kế hoạch mẫu của coach
+    default: null, 
   },
   title: {
     type: String,

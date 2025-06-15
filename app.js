@@ -19,21 +19,10 @@ app.use(cookieParser()); // Must be before CORS and routes
 
 // CORS configuration
 const corsOptions = {
-    origin: (origin, callback) => {
-        const allowedOrigins = [
-            process.env.CLIENT_URL,
-            'http://localhost:5173',
-            'https://smoking-cessation-support-platform-liart.vercel.app'
-        ].filter(Boolean);
-        if (allowedOrigins.includes(origin) || !origin) {
-            callback(null, true);
-        } else {
-            callback(new Error('Không được phép bởi CORS'));
-        }
-    },
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     optionsSuccessStatus: 204,
-    allowedHeaders: ['Authorization', 'Content-Type'],
+    allowedHeaders: ["Authorization", "Content-Type"],
     credentials: true,
 };
 app.use(cors(corsOptions));
