@@ -1,7 +1,7 @@
 openapi: 3.0.0
 servers:
   - description: QuitSmoke API - Production
-    url: https://quit-smoke-smoking.onrender.com
+    url: https://be-smoking-cessation-support-platform-w1tg.onrender.com
   - description: QuitSmoke API - Development
     url: http://localhost:5000
 info:
