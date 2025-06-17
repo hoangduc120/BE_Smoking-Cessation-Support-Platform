@@ -86,6 +86,15 @@ class QuitPlanController {
       return BAD_REQUEST(res, error.message);
     }
   }
+
+  async getQuitPlanDurationStats(req, res) {
+    try {
+      const stats = await quitPlanService.getQuitPlanDurationStats(req.params.quitPlanId);
+      return OK(res, 'Quit plan duration stats fetched successfully', stats);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
   async updateQuitPlanStage(req, res) {
     try {
       const stage = await quitPlanService.updateQuitPlanStage(req.params.id, req.body)
@@ -188,6 +197,26 @@ class QuitPlanController {
       const { coachId } = req.query
       const plans = await quitPlanService.getTemplatePlans(coachId)
       return OK(res, 'Template plans fetched successfully', plans);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
+
+  async getCompleteByPlanId(req, res) {
+    try {
+      const { planId } = req.params;
+      const completionData = await quitPlanService.getCompleteByPlanId(planId);
+      return OK(res, 'Plan completion details fetched successfully', completionData);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
+
+  async getAllUserPlanHistory(req, res) {
+    try {
+      const userId = req.user._id;
+      const historyData = await quitPlanService.getAllUserPlanHistory(userId);
+      return OK(res, 'User plan history fetched successfully', historyData);
     } catch (error) {
       return BAD_REQUEST(res, error.message);
     }

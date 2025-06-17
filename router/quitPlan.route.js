@@ -7,6 +7,8 @@ const { authMiddleware, restrictTo } = require('../middlewares/authMiddleware');
 router.post('/quitplans/select', authMiddleware, restrictTo('user'), quitPlanController.selectQuitPlan);
 router.get('/quitplans/current', authMiddleware, restrictTo('user'), quitPlanController.getUserCurrentPlan);
 router.get('/quitplans/template', authMiddleware, restrictTo('coach'), quitPlanController.getTemplatePlans);
+router.get('/quitplans/history', authMiddleware, restrictTo('user'), quitPlanController.getAllUserPlanHistory);
+router.get('/quitplans/:planId/completion', authMiddleware, quitPlanController.getCompleteByPlanId);
 
 // Routes chung
 router.post('/quitplans', authMiddleware, restrictTo('coach'), quitPlanController.createQuitPlan);
@@ -21,6 +23,7 @@ router.put('/quitplans/:id/fail', authMiddleware, restrictTo('user'), quitPlanCo
 // Stage routes
 router.post('/quitplans/:quitPlanId/stages', authMiddleware, restrictTo('coach'), quitPlanController.createQuitPlanStage);
 router.get('/quitplans/:quitPlanId/stages', authMiddleware, quitPlanController.getQuitPlanStages);
+router.get('/quitplans/:quitPlanId/duration-stats', authMiddleware, restrictTo('coach'), quitPlanController.getQuitPlanDurationStats);
 router.put('/quitplan-stages/:id', authMiddleware, restrictTo('coach'), quitPlanController.updateQuitPlanStage);
 router.put('/quitplan-stages/:id/complete', authMiddleware, restrictTo('user'), quitPlanController.completeStage);
 router.put('/quitplans/:planId/complete', authMiddleware, restrictTo('user'), quitPlanController.completePlan);

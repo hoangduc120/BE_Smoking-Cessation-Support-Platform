@@ -8,7 +8,17 @@ const mongoose = require('mongoose');
 class QuitPlanService {
   async createQuitPlan(data) {
     try {
-      const quitPlan = new QuitPlan(data);
+      const planData = {
+        ...data,
+        status: 'template'
+      };
+
+      if (planData.status === 'template') {
+        delete planData.startDate;
+        delete planData.endDate;
+      }
+
+      const quitPlan = new QuitPlan(planData);
       await quitPlan.save();
       return quitPlan;
     } catch (error) {
@@ -23,8 +33,8 @@ class QuitPlanService {
       if (status) query.status = status;
 
       const quitPlans = await QuitPlan.find(query)
-        .populate('coachId', 'name email')
-        .populate('userId', 'name email')
+        .populate('coachId', 'userName email')
+        .populate('userId', 'userName email')
         .sort({ createdAt: -1 });
       return quitPlans;
     } catch (error) {
@@ -34,13 +44,13 @@ class QuitPlanService {
   async getQuitPlanById(id) {
     try {
       const quitPlan = await QuitPlan.findById(id)
-        .populate('coachId', 'name email')
-        .populate('userId', 'name email');
+        .populate('coachId', 'userName email')
+        .populate('userId', 'userName email');
       if (!quitPlan) {
         throw new Error('Quit plan not found');
       }
       const badges = await Badge.find({ quitPlanId: id })
-        .populate('userId', 'name email')
+        .populate('userId', 'userName email')
       return { quitPlan, badges };
     } catch (error) {
       throw new Error('Failed to get quit plan');
@@ -82,11 +92,29 @@ class QuitPlanService {
         throw new Error('Quit plan not found');
       }
 
-      const stage = new QuitPlanStage(data)
+      const stageData = { ...data };
+
+      // Nếu là template plan, không cần start_date/end_date, chỉ cần duration
+      if (quitPlan.status === 'template') {
+        delete stageData.start_date;
+        delete stageData.end_date;
+
+        // Validate duration không được vượt quá duration của plan
+        if (quitPlan.duration) {
+          const existingStages = await QuitPlanStage.find({ quitPlanId: quitPlan._id });
+          const totalExistingDuration = existingStages.reduce((sum, stage) => sum + stage.duration, 0);
+
+          if (totalExistingDuration + stageData.duration > quitPlan.duration) {
+            throw new Error(`Tổng số ngày của các stages (${totalExistingDuration + stageData.duration}) không được vượt quá số ngày của kế hoạch (${quitPlan.duration})`);
+          }
+        }
+      }
+
+      const stage = new QuitPlanStage(stageData);
       await stage.save();
       return stage;
     } catch (error) {
-      throw new Error('Failed to create quit plan stage');
+      throw new Error(`Failed to create quit plan stage: ${error.message}`);
     }
   }
   async getQuitPlanStages(quitPlanId) {
@@ -95,6 +123,36 @@ class QuitPlanService {
         .sort({ order_index: 1 });
     } catch (error) {
       throw new Error('Failed to get quit plan stages');
+    }
+  }
+
+  async getQuitPlanDurationStats(quitPlanId) {
+    try {
+      const quitPlan = await QuitPlan.findById(quitPlanId);
+      if (!quitPlan) {
+        throw new Error('Quit plan not found');
+      }
+
+      const stages = await QuitPlanStage.find({ quitPlanId })
+        .sort({ order_index: 1 });
+
+      const totalStageDuration = stages.reduce((sum, stage) => sum + stage.duration, 0);
+      const remainingDuration = quitPlan.duration ? quitPlan.duration - totalStageDuration : 0;
+
+      return {
+        planDuration: quitPlan.duration || 0,
+        totalStageDuration,
+        remainingDuration,
+        stagesCount: stages.length,
+        stages: stages.map(stage => ({
+          _id: stage._id,
+          stage_name: stage.stage_name,
+          duration: stage.duration,
+          order_index: stage.order_index
+        }))
+      };
+    } catch (error) {
+      throw new Error(`Failed to get quit plan duration stats: ${error.message}`);
     }
   }
   async updateQuitPlanStage(id, data) {
@@ -171,34 +229,62 @@ class QuitPlanService {
         throw new Error('Quit plan not found');
       }
 
-      if (templatePlan.status !== "template" && templatePlan.status !== "ongoing") {
-        throw new Error('Can only select template or ongoing plans');
+      if (templatePlan.status !== "template") {
+        throw new Error('Can only select template plans');
       }
-      if (templatePlan.userId && templatePlan.userId.toString() === userId.toString()) {
-        throw new Error('Cannot select your own plan');
-      }
+
+      // Tính toán dates dựa trên duration và ngày đăng ký
+      const startDate = new Date();
+      const endDate = new Date(startDate.getTime() + (templatePlan.duration * 24 * 60 * 60 * 1000));
 
       const newPlan = new QuitPlan({
         ...templatePlan.toObject(),
         userId,
         status: "ongoing",
+        startDate,
+        endDate,
         _id: undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      });
+
       await newPlan.save();
 
-      const stages = await QuitPlanStage.find({ quitPlanId: templatePlan._id })
-      const newStages = stages.map(stage => ({
-        ...stage.toObject(),
-        quitPlanId: newPlan._id,
-        _id: undefined,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }))
-      await QuitPlanStage.insertMany(newStages);
+      // Lấy template stages và tính toán dates cho từng stage
+      const templateStages = await QuitPlanStage.find({ quitPlanId: templatePlan._id })
+        .sort({ order_index: 1 });
 
-      return newPlan;
+      if (templateStages.length > 0) {
+        let currentStageStartDate = new Date(startDate);
+
+        const newStages = templateStages.map(stage => {
+          const stageStartDate = new Date(currentStageStartDate);
+          const stageEndDate = new Date(stageStartDate.getTime() + (stage.duration * 24 * 60 * 60 * 1000));
+
+          // Cập nhật start date cho stage tiếp theo
+          currentStageStartDate = new Date(stageEndDate.getTime() + (24 * 60 * 60 * 1000)); // +1 ngày
+
+          return {
+            ...stage.toObject(),
+            quitPlanId: newPlan._id,
+            start_date: stageStartDate,
+            end_date: stageEndDate,
+            completed: false,
+            _id: undefined,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        });
+
+        await QuitPlanStage.insertMany(newStages);
+      }
+
+      // Populate để trả về thông tin đầy đủ
+      const populatedPlan = await QuitPlan.findById(newPlan._id)
+        .populate('coachId', 'userName email')
+        .populate('userId', 'userName email');
+
+      return populatedPlan;
     } catch (error) {
       throw new Error(`Failed to select quit plan: ${error.message}`);
     }
@@ -209,8 +295,8 @@ class QuitPlanService {
         throw new Error('Invalid user ID format');
       }
       const plan = await QuitPlan.findOne({ userId, status: "ongoing" })
-        .populate('coachId', 'name email')
-        .populate('userId', 'name email');
+        .populate('coachId', 'userName email')
+        .populate('userId', 'userName email');
       if (!plan) {
         return null;
       }
@@ -296,10 +382,103 @@ class QuitPlanService {
   async getTemplatePlans(coachId) {
     try {
       return await QuitPlan.find({ coachId, status: "template" })
-        .populate('coachId', 'name email')
+        .populate('coachId', 'userName email')
         .sort({ createdAt: -1 });
     } catch (error) {
       throw new Error('Failed to get template plans');
+    }
+  }
+
+  async getCompleteByPlanId(planId) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(planId)) {
+        throw new Error('Invalid plan ID format');
+      }
+
+      const plan = await QuitPlan.findById(planId)
+        .populate('coachId', 'userName email')
+        .populate('userId', 'userName email');
+
+      if (!plan) {
+        throw new Error('Plan not found');
+      }
+
+      const stages = await QuitPlanStage.find({ quitPlanId: planId })
+        .sort({ order_index: 1 });
+
+      const completedStages = stages.filter(stage => stage.completed);
+      const totalStages = stages.length;
+      const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
+
+      const badges = await Badge.find({ quitPlanId: planId })
+        .populate('userId', 'userName email')
+        .sort({ awardedAt: -1 });
+
+      return {
+        plan,
+        stages,
+        completedStages: completedStages.length,
+        totalStages,
+        completionPercentage: Math.round(completionPercentage),
+        badges,
+        isCompleted: plan.status === 'completed'
+      };
+    } catch (error) {
+      throw new Error(`Failed to get plan completion details: ${error.message}`);
+    }
+  }
+
+  async getAllUserPlanHistory(userId) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw new Error('Invalid user ID format');
+      }
+
+      const plans = await QuitPlan.find({ userId })
+        .populate('coachId', 'userName email')
+        .populate('userId', 'userName email')
+        .sort({ createdAt: -1 });
+
+      const planHistory = await Promise.all(
+        plans.map(async (plan) => {
+          const stages = await QuitPlanStage.find({ quitPlanId: plan._id })
+            .sort({ order_index: 1 });
+
+          const completedStages = stages.filter(stage => stage.completed);
+          const totalStages = stages.length;
+          const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
+
+          const badges = await Badge.find({ quitPlanId: plan._id, userId })
+            .sort({ awardedAt: -1 });
+
+          return {
+            plan: plan.toObject(),
+            completedStages: completedStages.length,
+            totalStages,
+            completionPercentage: Math.round(completionPercentage),
+            badgeCount: badges.length,
+            badges,
+            duration: plan.endDate && plan.startDate ?
+              Math.ceil((plan.endDate - plan.startDate) / (1000 * 60 * 60 * 24)) : null
+          };
+        })
+      );
+
+      const summary = {
+        totalPlans: plans.length,
+        completedPlans: plans.filter(p => p.status === 'completed').length,
+        ongoingPlans: plans.filter(p => p.status === 'ongoing').length,
+        failedPlans: plans.filter(p => p.status === 'failed').length,
+        templatePlans: plans.filter(p => p.status === 'template').length,
+        totalBadges: planHistory.reduce((sum, plan) => sum + plan.badgeCount, 0)
+      };
+
+      return {
+        planHistory,
+        summary
+      };
+    } catch (error) {
+      throw new Error(`Failed to get user plan history: ${error.message}`);
     }
   }
 }

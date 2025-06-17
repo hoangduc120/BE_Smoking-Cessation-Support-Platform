@@ -47,7 +47,7 @@ class QuitProgressService {
     }
     async getQuitProgressById(id) {
         const quitProgress = await QuitProgress.findById(id)
-            .populate('userId', 'username email')
+            .populate('userId', 'userName email')
             .populate('stageId', 'name description')
 
         if (!quitProgress) {
