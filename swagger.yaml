@@ -2533,7 +2533,7 @@ paths:
       tags:
         - QuitPlan
       summary: Create a new quit plan template
-      description: Creates a new quit plan template (requires coach role).
+      description: Creates a new quit plan template using duration (requires coach role). Coach chỉ cần nhập số ngày, không cần startDate/endDate. Dates sẽ được tính tự động khi user đăng ký.
       operationId: createQuitPlan
       security:
         - BearerAuth: []
@@ -2542,6 +2542,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/QuitPlanCreateRequest'
+            example:
+              title: "Kế hoạch cai thuốc 30 ngày"
+              reason: "Cải thiện sức khỏe và tiết kiệm chi phí"
+              duration: 30
+              image: "https://example.com/plan-image.jpg"
         required: true
       responses:
         '201':
@@ -2563,7 +2568,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '400':
-          description: Invalid request data (e.g., missing title or reason)
+          description: Invalid request data (e.g., missing title, reason, hoặc duration)
           content:
             application/json:
               schema:
@@ -2773,7 +2778,7 @@ paths:
       tags:
         - QuitPlanStage
       summary: Create a new quit plan stage
-      description: Creates a new stage for a quit plan (requires coach role).
+      description: Creates a new stage for a quit plan template using duration (requires coach role). Coach chỉ cần nhập số ngày, dates sẽ được tính tự động khi user đăng ký.
       operationId: createQuitPlanStage
       security:
         - BearerAuth: []
@@ -2781,7 +2786,7 @@ paths:
         - name: quitPlanId
           in: path
           required: true
-          description: ID of the quit plan
+          description: ID of the quit plan template
           schema:
             type: string
             example: '12345'
@@ -2790,6 +2795,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/QuitPlanStageCreateRequest'
+            example:
+              stage_name: "Giai đoạn 1: Giảm dần"
+              description: "Giảm 50% lượng thuốc lá"
+              order_index: 1
+              duration: 10
         required: true
       responses:
         '201':
@@ -2811,7 +2821,58 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '400':
-          description: Invalid request data (e.g., missing stage_name or order_index)
+          description: Invalid request data (e.g., duration vượt quá plan duration hoặc missing required fields)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /plans/quitplans/{quitPlanId}/duration-stats:
+    get:
+      tags:
+        - QuitPlanStage
+      summary: Get plan duration statistics (Coach only)
+      description: Retrieves duration statistics for a quit plan template, including total stage duration and remaining duration.
+      operationId: getQuitPlanDurationStats
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: quitPlanId
+          in: path
+          required: true
+          description: ID of the quit plan template
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Plan duration statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Quit plan duration stats fetched successfully'
+                  data:
+                    $ref: '#/components/schemas/PlanDurationStats'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User is not a coach
           content:
             application/json:
               schema:
@@ -3033,7 +3094,7 @@ paths:
       tags:
         - QuitPlan
       summary: Select a template quit plan
-      description: Allows a user to select and activate a template quit plan created by a coach.
+      description: Allows a user to select and activate a template quit plan created by a coach. System sẽ tự động tính startDate (hôm nay), endDate và dates cho tất cả stages dựa trên duration của template.
       operationId: selectQuitPlan
       security:
         - BearerAuth: []
@@ -3049,10 +3110,12 @@ paths:
                   type: string
                   example: 'template-plan-123'
                   description: ID of the template plan to select
+            example:
+              quitPlanId: "template-plan-123"
         required: true
       responses:
         '201':
-          description: Quit plan selected and created successfully
+          description: Quit plan selected and created successfully với dates được tính tự động
           content:
             application/json:
               schema:
@@ -3064,7 +3127,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '400':
-          description: Invalid request (e.g., user already has an ongoing plan, invalid template, or selecting own template)
+          description: Invalid request (e.g., user already has an ongoing plan, không phải template plan)
           content:
             application/json:
               schema:
@@ -3316,6 +3379,88 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '400':
           description: Invalid query parameters (e.g., missing or invalid coachId)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /plans/quitplans/history:
+    get:
+      tags:
+        - QuitPlan
+      summary: Get user plan history
+      description: Retrieves all plan history for the authenticated user, including completion statistics and badges.
+      operationId: getAllUserPlanHistory
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User plan history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'User plan history fetched successfully'
+                  data:
+                    $ref: '#/components/schemas/UserPlanHistoryResponse'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /plans/quitplans/{planId}/completion:
+    get:
+      tags:
+        - QuitPlan
+      summary: Get plan completion details
+      description: Retrieves detailed completion information for a specific quit plan, including stages, progress, and badges.
+      operationId: getCompleteByPlanId
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          description: ID of the quit plan to get completion details for
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Plan completion details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Plan completion details fetched successfully'
+                  data:
+                    $ref: '#/components/schemas/PlanCompletionResponse'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid plan ID format
           content:
             application/json:
               schema:
@@ -3878,7 +4023,7 @@ components:
         email:
           type: string
           format: email
-          example: 'user@example.com'
+          example: 'user@gmail.com'
         password:
           type: string
           format: password
@@ -4663,7 +4808,7 @@ components:
             _id:
               type: string
               example: '67890'
-            name:
+            userName:
               type: string
               example: 'Coach John'
             email:
@@ -4676,7 +4821,7 @@ components:
             _id:
               type: string
               example: '54321'
-            name:
+            userName:
               type: string
               example: 'Jane Doe'
             email:
@@ -4684,18 +4829,32 @@ components:
               example: 'jane@example.com'
         title:
           type: string
-          example: 'Smoking Cessation Plan'
+          example: 'Kế hoạch cai thuốc 30 ngày'
         reason:
           type: string
-          example: 'Improve health and save money'
+          example: 'Cải thiện sức khỏe và tiết kiệm chi phí'
+        image:
+          type: string
+          nullable: true
+          example: 'https://example.com/plan-image.jpg'
         startDate:
           type: string
           format: date-time
-          example: '2025-06-02T13:46:00.000Z'
+          nullable: true
+          example: '2025-01-21T13:46:00.000Z'
+          description: 'Ngày bắt đầu thực tế (chỉ có khi user đăng ký)'
         endDate:
           type: string
           format: date-time
-          example: '2025-07-02T13:46:00.000Z'
+          nullable: true
+          example: '2025-02-20T13:46:00.000Z'
+          description: 'Ngày kết thúc thực tế (chỉ có khi user đăng ký)'
+        duration:
+          type: integer
+          minimum: 1
+          maximum: 365
+          example: 30
+          description: 'Số ngày của kế hoạch (bắt buộc cho template)'
         status:
           type: string
           enum: ['template', 'pending', 'ongoing', 'completed', 'failed']
@@ -4703,11 +4862,11 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: '2025-06-02T13:46:00.000Z'
+          example: '2025-01-21T13:46:00.000Z'
         updatedAt:
           type: string
           format: date-time
-          example: '2025-06-02T13:46:00.000Z'
+          example: '2025-01-21T13:46:00.000Z'
       required:
         - coachId
         - title
@@ -4718,38 +4877,43 @@ components:
       properties:
         title:
           type: string
-          example: 'Smoking Cessation Plan'
+          example: 'Kế hoạch cai thuốc 30 ngày'
         reason:
           type: string
-          example: 'Improve health and save money'
-        startDate:
+          example: 'Cải thiện sức khỏe và tiết kiệm chi phí'
+        image:
           type: string
-          format: date-time
-          example: '2025-06-02T13:46:00.000Z'
-        endDate:
-          type: string
-          format: date-time
-          example: '2025-07-02T13:46:00.000Z'
+          nullable: true
+          example: 'https://example.com/plan-image.jpg'
+        duration:
+          type: integer
+          minimum: 1
+          maximum: 365
+          example: 30
+          description: 'Số ngày của kế hoạch (bắt buộc cho template)'
       required:
         - title
         - reason
+        - duration
     QuitPlanUpdateRequest:
       type: object
       properties:
         title:
           type: string
-          example: 'Updated Smoking Cessation Plan'
+          example: 'Kế hoạch cai thuốc cập nhật'
         reason:
           type: string
-          example: 'Updated reason'
-        startDate:
+          example: 'Lý do cập nhật'
+        image:
           type: string
-          format: date-time
-          example: '2025-06-02T13:46:00.000Z'
-        endDate:
-          type: string
-          format: date-time
-          example: '2025-07-02T13:46:00.000Z'
+          nullable: true
+          example: 'https://example.com/updated-plan-image.jpg'
+        duration:
+          type: integer
+          minimum: 1
+          maximum: 365
+          example: 35
+          description: 'Số ngày của kế hoạch (chỉ cập nhật cho template)'
         status:
           type: string
           enum: ['template', 'pending', 'ongoing', 'completed', 'failed']
@@ -4765,87 +4929,87 @@ components:
           example: '12345'
         stage_name:
           type: string
-          example: 'Week 1: Reduce Usage'
+          example: 'Giai đoạn 1: Giảm dần'
         description:
           type: string
-          example: 'Reduce cigarette usage by 50%'
+          example: 'Giảm 50% lượng thuốc lá'
         order_index:
           type: integer
           example: 1
         start_date:
           type: string
           format: date-time
-          example: '2025-06-02T13:46:00.000Z'
+          nullable: true
+          example: '2025-01-21T13:46:00.000Z'
+          description: 'Ngày bắt đầu stage (chỉ có khi user đăng ký)'
         end_date:
           type: string
           format: date-time
-          example: '2025-06-09T13:46:00.000Z'
+          nullable: true
+          example: '2025-01-31T13:46:00.000Z'
+          description: 'Ngày kết thúc stage (chỉ có khi user đăng ký)'
+        duration:
+          type: integer
+          minimum: 1
+          maximum: 365
+          example: 10
+          description: 'Số ngày của giai đoạn này'
         completed:
           type: boolean
           example: false
         createdAt:
           type: string
           format: date-time
-          example: '2025-06-02T13:46:00.000Z'
+          example: '2025-01-21T13:46:00.000Z'
         updatedAt:
           type: string
           format: date-time
-          example: '2025-06-02T13:46:00.000Z'
+          example: '2025-01-21T13:46:00.000Z'
       required:
         - quitPlanId
         - stage_name
         - order_index
-        - start_date
-        - end_date
+        - duration
     QuitPlanStageCreateRequest:
       type: object
       properties:
-        quitPlanId:
-          type: string
-          example: '12345'
         stage_name:
           type: string
-          example: 'Week 1: Reduce Usage'
+          example: 'Giai đoạn 1: Giảm dần'
         description:
           type: string
-          example: 'Reduce cigarette usage by 50%'
+          example: 'Giảm 50% lượng thuốc lá'
         order_index:
           type: integer
           example: 1
-        start_date:
-          type: string
-          format: date-time
-          example: '2025-06-02T13:46:00.000Z'
-        end_date:
-          type: string
-          format: date-time
-          example: '2025-06-09T13:46:00.000Z'
+        duration:
+          type: integer
+          minimum: 1
+          maximum: 365
+          example: 10
+          description: 'Số ngày của giai đoạn này'
       required:
-        - quitPlanId
         - stage_name
         - order_index
-        - start_date
-        - end_date
+        - duration
     QuitPlanStageUpdateRequest:
       type: object
       properties:
         stage_name:
           type: string
-          example: 'Updated Week 1'
+          example: 'Giai đoạn 1 cập nhật'
         description:
           type: string
-          example: 'Updated description'
+          example: 'Mô tả cập nhật'
         order_index:
           type: integer
           example: 1
-        start_date:
-          type: string
-          format: date-time
-          example: '2025-06-02T13:46:00.000Z'
-        end_date:
-          type: string
-          format: date-time
-          example: '2025-06-09T13:46:00.000Z'
+        duration:
+          type: integer
+          minimum: 1
+          maximum: 365
+          example: 12
+          description: 'Số ngày của giai đoạn này (chỉ cập nhật cho template)'
         completed:
           type: boolean
           example: true
@@ -5047,7 +5211,50 @@ components:
         - completedDays
         - remainingDays
         - completionPercentage
-        - isCompleted
+                 - isCompleted
+    PlanDurationStats:
+      type: object
+      properties:
+        planDuration:
+          type: integer
+          example: 30
+          description: 'Tổng số ngày của kế hoạch'
+        totalStageDuration:
+          type: integer
+          example: 25
+          description: 'Tổng số ngày của tất cả stages đã tạo'
+        remainingDuration:
+          type: integer
+          example: 5
+          description: 'Số ngày còn lại có thể tạo thêm stages'
+        stagesCount:
+          type: integer
+          example: 3
+          description: 'Số lượng stages đã tạo'
+        stages:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                example: 'stage-12345'
+              stage_name:
+                type: string
+                example: 'Giai đoạn 1: Giảm dần'
+              duration:
+                type: integer
+                example: 10
+              order_index:
+                type: integer
+                example: 1
+          description: 'Danh sách stages với thông tin duration'
+      required:
+        - planDuration
+        - totalStageDuration
+        - remainingDuration
+        - stagesCount
+        - stages
         - progressEntries
     Blog:
       type: object
@@ -5446,3 +5653,130 @@ components:
         - recentFailures
         - systemHealth
                  - lastCheckedAt
+    UserPlanHistoryResponse:
+      type: object
+      properties:
+        planHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanHistoryItem'
+          description: List of user's quit plans with completion details
+        summary:
+          $ref: '#/components/schemas/PlanHistorySummary'
+          description: Summary statistics of user's plan history
+      required:
+        - planHistory
+        - summary
+    PlanHistoryItem:
+      type: object
+      properties:
+        plan:
+          $ref: '#/components/schemas/QuitPlan'
+          description: The quit plan details
+        completedStages:
+          type: integer
+          example: 3
+          description: Number of completed stages
+        totalStages:
+          type: integer
+          example: 5
+          description: Total number of stages in the plan
+        completionPercentage:
+          type: integer
+          example: 60
+          description: Completion percentage (0-100)
+        badgeCount:
+          type: integer
+          example: 2
+          description: Number of badges earned for this plan
+        badges:
+          type: array
+          items:
+            $ref: '#/components/schemas/Badge'
+          description: List of badges earned for this plan
+        duration:
+          type: integer
+          nullable: true
+          example: 30
+          description: Duration of the plan in days
+      required:
+        - plan
+        - completedStages
+        - totalStages
+        - completionPercentage
+        - badgeCount
+        - badges
+    PlanHistorySummary:
+      type: object
+      properties:
+        totalPlans:
+          type: integer
+          example: 5
+          description: Total number of plans user has participated in
+        completedPlans:
+          type: integer
+          example: 2
+          description: Number of completed plans
+        ongoingPlans:
+          type: integer
+          example: 1
+          description: Number of currently ongoing plans
+        failedPlans:
+          type: integer
+          example: 2
+          description: Number of failed plans
+        templatePlans:
+          type: integer
+          example: 0
+          description: Number of template plans (should be 0 for users)
+        totalBadges:
+          type: integer
+          example: 8
+          description: Total number of badges earned across all plans
+      required:
+        - totalPlans
+        - completedPlans
+        - ongoingPlans
+        - failedPlans
+        - templatePlans
+        - totalBadges
+    PlanCompletionResponse:
+      type: object
+      properties:
+        plan:
+          $ref: '#/components/schemas/QuitPlan'
+          description: The quit plan details
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuitPlanStage'
+          description: List of all stages in the plan
+        completedStages:
+          type: integer
+          example: 3
+          description: Number of completed stages
+        totalStages:
+          type: integer
+          example: 5
+          description: Total number of stages in the plan
+        completionPercentage:
+          type: integer
+          example: 60
+          description: Completion percentage (0-100)
+        badges:
+          type: array
+          items:
+            $ref: '#/components/schemas/Badge'
+          description: List of badges earned for this plan
+        isCompleted:
+          type: boolean
+          example: false
+          description: Whether the entire plan has been completed
+      required:
+        - plan
+        - stages
+        - completedStages
+        - totalStages
+        - completionPercentage
+        - badges
+        - isCompleted

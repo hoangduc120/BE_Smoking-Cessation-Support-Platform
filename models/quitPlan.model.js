@@ -10,7 +10,7 @@ var quitplanSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    default: null, 
+    default: null,
   },
   title: {
     type: String,
@@ -29,6 +29,14 @@ var quitplanSchema = new mongoose.Schema({
   },
   endDate: {
     type: Date,
+  },
+  duration: {
+    type: Number,
+    required: function () {
+      return this.status === 'template';
+    },
+    min: 1,
+    max: 365
   },
   status: {
     type: String,
