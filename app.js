@@ -18,8 +18,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser()); // Must be before CORS and routes
 
 // CORS configuration
+// CORS configuration
 const corsOptions = {
-    origin: "*",
+    origin: process.env.CLIENT_URL || "*",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     optionsSuccessStatus: 204,
     allowedHeaders: ["Authorization", "Content-Type"],
