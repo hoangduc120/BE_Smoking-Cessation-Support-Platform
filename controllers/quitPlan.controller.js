@@ -156,8 +156,8 @@ class QuitPlanController {
   async completeStage(req, res) {
     try {
       const userId = req.user._id
-      const { stageId } = req.params
-      const result = await quitPlanService.completeStage(stageId, userId)
+      const { id } = req.params
+      const result = await quitPlanService.completeStage(id, userId)
       return OK(res, result.message, result);
     } catch (error) {
       return BAD_REQUEST(res, error.message);
