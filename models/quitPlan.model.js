@@ -12,6 +12,11 @@ var quitplanSchema = new mongoose.Schema({
     ref: "User",
     default: null,
   },
+  templateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Quitplan",
+    default: null,
+  },
   title: {
     type: String,
     required: true,

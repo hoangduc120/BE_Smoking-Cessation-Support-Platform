@@ -3472,6 +3472,184 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /badges/my:
+    get:
+      tags:
+        - Badge
+      summary: Get user's badges
+      description: Retrieves all badges that the authenticated user has earned.
+      operationId: getUserBadges
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User badges retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'User badges retrieved successfully'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserBadgeResponse'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /badges/all:
+    get:
+      tags:
+        - Badge
+      summary: Get all available badges (Admin/Coach only)
+      description: Retrieves all badges that can be awarded in the system.
+      operationId: getAllBadges
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All badges retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'All badges retrieved successfully'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Badge'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin or Coach role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /badges/create-for-plan:
+    post:
+      tags:
+        - Badge
+      summary: Create a badge for a specific quit plan template (Coach only)
+      description: Allows a coach to create a badge for a specific quit plan template. When a user completes a plan from this template, they will automatically receive this badge.
+      operationId: createBadgeForPlan
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BadgeCreateForPlanRequest'
+        required: true
+      responses:
+        '201':
+          description: Badge created for plan successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Badge created for plan successfully'
+                  data:
+                    $ref: '#/components/schemas/Badge'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Coach role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /badges/award:
+    post:
+      tags:
+        - Badge
+      summary: Award a badge to user (Admin/Coach only)
+      description: Awards an existing badge to a specific user.
+      operationId: awardBadgeToUser
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AwardBadgeRequest'
+        required: true
+      responses:
+        '201':
+          description: Badge awarded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Badge awarded successfully'
+                  data:
+                    $ref: '#/components/schemas/UserBadgeAwardResponse'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin or Coach role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data or user already has this badge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User or Badge not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
   /quitprogress:
     post:
       tags:
@@ -4834,6 +5012,11 @@ components:
             email:
               type: string
               example: 'jane@example.com'
+        templateId:
+          type: string
+          nullable: true
+          example: 'template-abc123'
+          description: 'ID of the original template plan (only when user registers from template)'
         title:
           type: string
           example: 'Kế hoạch cai thuốc 30 ngày'
@@ -5789,3 +5972,106 @@ components:
         - completionPercentage
         - badges
         - isCompleted
+    UserBadgeResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 'userbadge-12345'
+        badgeId:
+          type: string
+          example: 'badge-12345'
+        name:
+          type: string
+          example: 'Plan Completed'
+        description:
+          type: string
+          example: 'Hoàn thành kế hoạch cai thuốc: Kế hoạch 30 ngày'
+        icon_url:
+          type: string
+          nullable: true
+          example: '/badges/plan-completed.png'
+        awardedAt:
+          type: string
+          format: date-time
+          example: '2025-01-21T10:30:00.000Z'
+        quitPlanId:
+          type: string
+          example: 'plan-12345'
+      required:
+        - _id
+        - badgeId
+        - name
+        - awardedAt
+    BadgeCreateForPlanRequest:
+      type: object
+      description: |
+        Coach creates a badge for a template plan. When a user completes a plan from this template, 
+        they will automatically receive this badge.
+      properties:
+        quitPlanId:
+          type: string
+          example: 'template-plan-12345'
+          description: ID của plan template (status = "template") mà coach muốn tạo badge
+        name:
+          type: string
+          example: 'Plan Completion Master'
+          description: Tên của huy hiệu
+        description:
+          type: string
+          example: 'Hoàn thành xuất sắc kế hoạch cai thuốc 30 ngày'
+          description: Mô tả thành tích để nhận huy hiệu
+        icon_url:
+          type: string
+          nullable: true
+          example: '/badges/plan-completion-master.png'
+          description: URL đến icon của huy hiệu
+      required:
+        - quitPlanId
+        - name
+        - description
+    AwardBadgeRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          example: '54321'
+          description: ID of the user to award the badge to
+        badgeId:
+          type: string
+          example: 'badge-12345'
+          description: ID of the badge to award
+      required:
+        - userId
+        - badgeId
+
+    UserBadgeAwardResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 'userbadge-12345'
+        userId:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: '54321'
+            userName:
+              type: string
+              example: 'john_doe'
+            email:
+              type: string
+              format: email
+              example: 'john@example.com'
+        badgeId:
+          $ref: '#/components/schemas/Badge'
+        awardedAt:
+          type: string
+          format: date-time
+          example: '2025-01-21T10:30:00.000Z'
+      required:
+        - _id
+        - userId
+        - badgeId
+        - awardedAt
