@@ -25,11 +25,13 @@ router.post('/quitplans/:quitPlanId/stages', authMiddleware, restrictTo('coach')
 router.get('/quitplans/:quitPlanId/stages', authMiddleware, quitPlanController.getQuitPlanStages);
 router.get('/quitplans/:quitPlanId/duration-stats', authMiddleware, restrictTo('coach'), quitPlanController.getQuitPlanDurationStats);
 router.put('/quitplan-stages/:id', authMiddleware, restrictTo('coach'), quitPlanController.updateQuitPlanStage);
+
 router.put('/quitplan-stages/:id/complete', authMiddleware, restrictTo('user'), quitPlanController.completeStage);
+
 router.put('/quitplans/:planId/complete', authMiddleware, restrictTo('user'), quitPlanController.completePlan);
+
 router.delete('/quitplan-stages/:id', authMiddleware, restrictTo('coach', 'admin'), quitPlanController.deleteQuitPlanStage);
 
-// Badge routes
 router.post('/quitplans/:quitPlanId/badges', authMiddleware, restrictTo('coach'), quitPlanController.awardBadgeToQuitPlan);
 router.get('/quitplans/:quitPlanId/badges', authMiddleware, quitPlanController.getQuitPlanBadges);
 

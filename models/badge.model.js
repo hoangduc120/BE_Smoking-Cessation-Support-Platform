@@ -1,11 +1,6 @@
 const mongoose = require('mongoose');
 
 const badgeSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
   quitPlanId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Quitplan',
@@ -17,14 +12,15 @@ const badgeSchema = new mongoose.Schema({
   },
   description: {
     type: String,
+    required: true,
   },
   icon_url: {
     type: String,
   },
-  awardedAt: {
-    type: Date,
-  },
-  
+
 }, { timestamps: true });
+
+// Đảm bảo mỗi quitPlan chỉ có một badge
+badgeSchema.index({ quitPlanId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Badge', badgeSchema);

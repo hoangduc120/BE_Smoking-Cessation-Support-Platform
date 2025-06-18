@@ -208,13 +208,36 @@ class QuitPlanService {
   }
   async getQuitPlanBadges(quitPlanId) {
     try {
-      const quitPlan = await QuitPlan.findById(quitPlanId)
+      const quitPlan = await QuitPlan.findById(quitPlanId);
       if (!quitPlan) {
         throw new Error('Quit plan not found');
       }
-      return await Badge.find({ quitPlanId })
-        .populate('userId', 'name email')
+      let badge = null;
+
+      if (quitPlan.templateId) {
+        badge = await Badge.findOne({ quitPlanId: quitPlan.templateId });
+      }
+
+      if (!badge) {
+        badge = await Badge.findOne({ quitPlanId: quitPlanId });
+      }
+
+      if (!badge) {
+        return []; 
+      }
+
+      const UserBadge = require('../models/userBadge.model');
+      const userBadges = await UserBadge.find({ badgeId: badge._id })
+        .populate('userId', 'userName email')
+        .populate('badgeId')
         .sort({ awardedAt: -1 });
+
+      return userBadges.map(ub => ({
+        _id: ub._id,
+        badge: ub.badgeId,
+        userId: ub.userId,
+        awardedAt: ub.awardedAt
+      }));
     } catch (error) {
       throw new Error('Failed to get quit plan badges');
     }
@@ -235,7 +258,6 @@ class QuitPlanService {
         throw new Error('Can only select template plans');
       }
 
-      // Tính toán dates dựa trên duration và ngày đăng ký
       const startDate = new Date();
       const endDate = new Date(startDate.getTime() + (templatePlan.duration * 24 * 60 * 60 * 1000));
 
@@ -245,6 +267,7 @@ class QuitPlanService {
         status: "ongoing",
         startDate,
         endDate,
+        templateId: templatePlan._id, 
         _id: undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -252,7 +275,6 @@ class QuitPlanService {
 
       await newPlan.save();
 
-      // Lấy template stages và tính toán dates cho từng stage
       const templateStages = await QuitPlanStage.find({ quitPlanId: templatePlan._id })
         .sort({ order_index: 1 });
 
@@ -263,8 +285,7 @@ class QuitPlanService {
           const stageStartDate = new Date(currentStageStartDate);
           const stageEndDate = new Date(stageStartDate.getTime() + (stage.duration * 24 * 60 * 60 * 1000));
 
-          // Cập nhật start date cho stage tiếp theo
-          currentStageStartDate = new Date(stageEndDate.getTime() + (24 * 60 * 60 * 1000)); // +1 ngày
+          currentStageStartDate = new Date(stageEndDate.getTime() + (24 * 60 * 60 * 1000)); 
 
           return {
             ...stage.toObject(),
@@ -281,7 +302,6 @@ class QuitPlanService {
         await QuitPlanStage.insertMany(newStages);
       }
 
-      // Populate để trả về thông tin đầy đủ
       const populatedPlan = await QuitPlan.findById(newPlan._id)
         .populate('coachId', 'userName email')
         .populate('userId', 'userName email');
@@ -307,7 +327,6 @@ class QuitPlanService {
       const progress = await QuitProgress.find({ userId, stageId: { $in: stages.map(s => s._id) } });
       return { plan, stages, progress };
     } catch (error) {
-      console.error('Service error:', error);
       throw new Error(`Failed to get user current plan: ${error.message}`);
     }
   }
@@ -331,8 +350,12 @@ class QuitPlanService {
       let planCompleted = false;
 
       if (allCompleted) {
-        await this.completePlan(plan._id, userId);
-        message = "Plan completed successfully! Badge awarded.";
+        const result = await this.completePlan(plan._id, userId);
+        if (result.badge) {
+          message = "Plan completed successfully! Badge awarded.";
+        } else {
+          message = "Plan completed successfully!";
+        }
         planCompleted = true;
       }
 
@@ -357,11 +380,12 @@ class QuitPlanService {
       plan.status = "completed";
       await plan.save();
 
-      const badge = await this.awardBadgeToQuitPlan(plan._id, {
-        name: "Plan Completed",
-        description: `Hoàn thành kế hoạch cai thuốc: ${plan.title}`,
-        icon_url: "/badges/plan-completed.png"
-      }, userId);
+      let badge = null;
+      try {
+        const badgeService = require('./badge.service');
+        badge = await badgeService.awardPlanBadgeToUser(planId, userId);
+      } catch (badgeError) {
+      }
 
       return { plan, badge };
     } catch (error) {
@@ -412,9 +436,19 @@ class QuitPlanService {
       const totalStages = stages.length;
       const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
 
-      const badges = await Badge.find({ quitPlanId: planId })
+      const UserBadge = require('../models/userBadge.model');
+      const userBadgesForPlan = await UserBadge.find({})
+        .populate('badgeId')
         .populate('userId', 'userName email')
         .sort({ awardedAt: -1 });
+
+      const badges = userBadgesForPlan
+        .filter(ub => ub.badgeId && ub.badgeId.quitPlanId.toString() === planId.toString())
+        .map(ub => ({
+          ...ub.badgeId.toObject(),
+          userId: ub.userId,
+          awardedAt: ub.awardedAt
+        }));
 
       return {
         plan,
@@ -450,8 +484,14 @@ class QuitPlanService {
           const totalStages = stages.length;
           const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
 
-          const badges = await Badge.find({ quitPlanId: plan._id, userId })
+          const UserBadge = require('../models/userBadge.model');
+          const userBadges = await UserBadge.find({ userId })
+            .populate('badgeId')
             .sort({ awardedAt: -1 });
+
+          const badges = userBadges
+            .filter(ub => ub.badgeId && ub.badgeId.quitPlanId.toString() === plan._id.toString())
+            .map(ub => ub.badgeId);
 
           return {
             plan: plan.toObject(),
