@@ -72,7 +72,11 @@ class QuitPlanController {
   }
   async createQuitPlanStage(req, res) {
     try {
-      const stages = await quitPlanService.createQuitPlanStage(req.body);
+      const stageData = {
+        ...req.body,
+        quitPlanId: req.params.quitPlanId
+      };
+      const stages = await quitPlanService.createQuitPlanStage(stageData);
       return OK(res, 'Quit plan stages created successfully', stages);
     } catch (error) {
       return BAD_REQUEST(res, error.message);

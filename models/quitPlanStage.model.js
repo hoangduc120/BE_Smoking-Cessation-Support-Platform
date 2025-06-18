@@ -19,15 +19,11 @@ const quitPlanStageSchema = new mongoose.Schema({
   },
   start_date: {
     type: Date,
-    required: function () {
-      return this.parent().status !== 'template';
-    },
+    required: false,
   },
   end_date: {
     type: Date,
-    required: function () {
-      return this.parent().status !== 'template';
-    },
+    required: false,
   },
   duration: {
     type: Number,

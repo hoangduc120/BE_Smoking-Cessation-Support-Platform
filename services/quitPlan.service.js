@@ -86,7 +86,6 @@ class QuitPlanService {
   }
   async createQuitPlanStage(data) {
     try {
-      // Validate that the quit plan exists
       const quitPlan = await QuitPlan.findById(data.quitPlanId);
       if (!quitPlan) {
         throw new Error('Quit plan not found');
@@ -94,12 +93,10 @@ class QuitPlanService {
 
       const stageData = { ...data };
 
-      // Nếu là template plan, không cần start_date/end_date, chỉ cần duration
       if (quitPlan.status === 'template') {
         delete stageData.start_date;
         delete stageData.end_date;
 
-        // Validate duration không được vượt quá duration của plan
         if (quitPlan.duration) {
           const existingStages = await QuitPlanStage.find({ quitPlanId: quitPlan._id });
           const totalExistingDuration = existingStages.reduce((sum, stage) => sum + stage.duration, 0);
@@ -108,12 +105,17 @@ class QuitPlanService {
             throw new Error(`Tổng số ngày của các stages (${totalExistingDuration + stageData.duration}) không được vượt quá số ngày của kế hoạch (${quitPlan.duration})`);
           }
         }
+      } else {
+        if (!stageData.start_date || !stageData.end_date) {
+          throw new Error('start_date và end_date là bắt buộc cho plans không phải template');
+        }
       }
 
       const stage = new QuitPlanStage(stageData);
       await stage.save();
       return stage;
     } catch (error) {
+      console.error('Error creating stage:', error);
       throw new Error(`Failed to create quit plan stage: ${error.message}`);
     }
   }
