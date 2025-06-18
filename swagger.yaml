@@ -2778,7 +2778,7 @@ paths:
       tags:
         - QuitPlanStage
       summary: Create a new quit plan stage
-      description: Creates a new stage for a quit plan template using duration (requires coach role). Coach chỉ cần nhập số ngày, dates sẽ được tính tự động khi user đăng ký.
+      description: Creates a new stage for a quit plan template using duration (requires coach role). The quitPlanId is automatically extracted from the URL path. Coach chỉ cần nhập số ngày, dates sẽ được tính tự động khi user đăng ký. Note - quitPlanId should NOT be included in the request body as it's taken from the URL.
       operationId: createQuitPlanStage
       security:
         - BearerAuth: []
@@ -2786,7 +2786,7 @@ paths:
         - name: quitPlanId
           in: path
           required: true
-          description: ID of the quit plan template
+          description: ID of the quit plan template (should be a valid ObjectId format)
           schema:
             type: string
             example: '12345'
@@ -2802,7 +2802,7 @@ paths:
               duration: 10
         required: true
       responses:
-        '201':
+        '200':
           description: Quit plan stage created successfully
           content:
             application/json:
@@ -2821,17 +2821,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '400':
-          description: Invalid request data (e.g., duration vượt quá plan duration hoặc missing required fields)
+          description: Invalid request data (e.g., duration vượt quá plan duration, missing required fields, hoặc invalid ObjectId format)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+                example:
+                  status: "fail"
+                  message: "Failed to create quit plan stage: Quit plan not found"
         '404':
           description: Quit plan not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+                example:
+                  status: "fail" 
+                  message: "Failed to create quit plan stage: Quit plan not found"
   /plans/quitplans/{quitPlanId}/duration-stats:
     get:
       tags:
@@ -3465,6 +3471,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
   /quitprogress:
     post:
       tags:
@@ -4975,7 +4982,7 @@ components:
       properties:
         stage_name:
           type: string
-          example: 'Giai đoạn 1: Giảm dần'
+          example: 'Giai đoạn 1: kudou'
         description:
           type: string
           example: 'Giảm 50% lượng thuốc lá'
@@ -4992,6 +4999,8 @@ components:
         - stage_name
         - order_index
         - duration
+      additionalProperties: false
+      description: 'Request body for creating a quit plan stage. Note: quitPlanId is taken from URL path and should NOT be included in the request body.'
     QuitPlanStageUpdateRequest:
       type: object
       properties:
