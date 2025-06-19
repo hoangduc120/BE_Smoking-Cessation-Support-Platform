@@ -11,6 +11,9 @@ router.delete('/:id', authMiddleware, restrictTo('user'), quitProgressController
 
 router.get('/stage/:stageId/stats', authMiddleware, restrictTo('user'), quitProgressController.getStageProgressStats)
 
+router.post('/check-auto-complete', authMiddleware, restrictTo('user'), quitProgressController.checkAndAutoCompleteStages)
+router.post('/process-expired-stages', authMiddleware, restrictTo('user'), quitProgressController.processExpiredStages)
+router.post('/send-test-reminder', authMiddleware, restrictTo('admin'), quitProgressController.sendTestReminder)
 router.post('/check-failed-plans', authMiddleware, restrictTo('admin'), quitProgressController.checkFailedPlans)
 
 module.exports = router;

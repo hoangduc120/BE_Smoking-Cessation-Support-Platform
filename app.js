@@ -10,6 +10,7 @@ const session = require("express-session");
 const { swaggerUi, swaggerSpec } = require("./configs/swagger");
 const MembershipScheduler = require("./utils/membershipScheduler");
 const { startFailedPlansChecker } = require("./cron/checkFailedPlans");
+const { startDailyReminders } = require("./cron/dailyReminders");
 
 const app = express();
 
@@ -17,7 +18,6 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser()); // Must be before CORS and routes
 
-// CORS configuration
 // CORS configuration
 const corsOptions = {
     origin: process.env.CLIENT_URL || "*",
@@ -51,6 +51,7 @@ app.use("/", appRoutes);
 // Initialize schedulers
 MembershipScheduler.initScheduler();
 startFailedPlansChecker();
+startDailyReminders();
 
 // Error handling
 app.use((req, res, next) => {

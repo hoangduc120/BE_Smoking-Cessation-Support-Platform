@@ -1,7 +1,9 @@
 const QuitPlan = require("../models/quitPlan.model");
 const QuitPlanStage = require("../models/quitPlanStage.model");
 const QuitProgress = require("../models/quitProgress.model");
+const User = require("../models/user.models");
 const quitPlanService = require("./quitPlan.service");
+const sendMail = require("../utils/sendMail");
 
 
 class QuitProgressService {
@@ -80,21 +82,47 @@ class QuitProgressService {
                 return;
             }
 
-            const startDate = new Date(stage.start_date);
-            const endDate = new Date(stage.end_date);
-            const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            const totalDays = stage.duration;
 
-            const progressCount = await QuitProgress.countDocuments({
-                userId,
-                stageId,
-                date: {
-                    $gte: startDate,
-                    $lte: endDate
+            const stageStartDate = stage.start_date ? new Date(stage.start_date) : null;
+            let progressCount = 0;
+
+            if (stageStartDate) {
+                const currentDate = new Date();
+                const stageEndDate = new Date(stageStartDate.getTime() + (totalDays - 1) * 24 * 60 * 60 * 1000);
+
+                progressCount = await QuitProgress.countDocuments({
+                    userId,
+                    stageId,
+                    date: {
+                        $gte: stageStartDate,
+                        $lte: stageEndDate
+                    }
+                });
+
+                const daysPassed = Math.ceil((currentDate - stageStartDate) / (1000 * 60 * 60 * 24));
+
+                if (daysPassed >= totalDays) {
+                    const completionPercentage = (progressCount / totalDays) * 100;
+
+                    if (completionPercentage >= 75) {
+                        await quitPlanService.completeStage(stageId, userId);
+                        await this.moveToNextStage(stage.quitPlanId, userId);
+                    } else {
+                        await quitPlanService.failQuitPlan(stage.quitPlanId, userId);
+                    }
                 }
-            });
+            } else {
+                progressCount = await QuitProgress.countDocuments({
+                    userId,
+                    stageId
+                });
 
-            if (progressCount >= totalDays) {
-                await quitPlanService.completeStage(stageId, userId);
+                const completionPercentage = (progressCount / totalDays) * 100;
+                if (completionPercentage >= 75) {
+                    await quitPlanService.completeStage(stageId, userId);
+                    await this.moveToNextStage(stage.quitPlanId, userId);
+                }
             }
         } catch (error) {
             console.error('Error in checkAndCompleteStage:', error);
@@ -120,51 +148,40 @@ class QuitProgressService {
             }).sort({ order_index: 1 });
 
             const currentDate = new Date();
-            const oneDayAgo = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
 
             for (const stage of stages) {
                 if (stage.completed) continue;
 
-                const stageStartDate = new Date(stage.start_date);
-                const stageEndDate = new Date(stage.end_date);
+                // Sử dụng duration để tính toán
+                const totalDays = stage.duration;
 
-                if (currentDate > stageEndDate && !stage.completed) {
-                    const progressCount = await QuitProgress.countDocuments({
-                        userId,
-                        stageId: stage._id,
-                        date: {
-                            $gte: stageStartDate,
-                            $lte: stageEndDate
+                if (stage.start_date) {
+                    const stageStartDate = new Date(stage.start_date);
+                    const stageEndDate = new Date(stageStartDate.getTime() + (totalDays - 1) * 24 * 60 * 60 * 1000);
+                    const daysPassed = Math.ceil((currentDate - stageStartDate) / (1000 * 60 * 60 * 24));
+
+                    // Kiểm tra nếu đã hết thời gian duration
+                    if (daysPassed >= totalDays && !stage.completed) {
+                        const progressCount = await QuitProgress.countDocuments({
+                            userId,
+                            stageId: stage._id,
+                            date: {
+                                $gte: stageStartDate,
+                                $lte: stageEndDate
+                            }
+                        });
+
+                        // Kiểm tra nếu % hoàn thành < 75% thì stage failed
+                        const completionPercentage = (progressCount / totalDays) * 100;
+                        if (completionPercentage < 75) {
+                            await quitPlanService.failQuitPlan(planId, userId);
+                            return true;
+                        } else {
+                            // Hoàn thành stage và chuyển sang stage tiếp theo
+                            await quitPlanService.completeStage(stage._id, userId);
+                            await this.moveToNextStage(planId, userId);
                         }
-                    });
-
-                    const totalDays = Math.ceil((stageEndDate - stageStartDate) / (1000 * 60 * 60 * 24)) + 1;
-
-                    if (progressCount < totalDays) {
-                        await quitPlanService.failQuitPlan(planId, userId);
-                        return true;
                     }
-                }
-
-                if (currentDate >= stageStartDate && currentDate <= stageEndDate) {
-                    const yesterdayProgress = await QuitProgress.findOne({
-                        userId,
-                        stageId: stage._id,
-                        date: {
-                            $gte: oneDayAgo.setHours(0, 0, 0, 0),
-                            $lt: oneDayAgo.setHours(23, 59, 59, 999)
-                        }
-                    });
-
-                    const todayProgress = await QuitProgress.findOne({
-                        userId,
-                        stageId: stage._id,
-                        date: {
-                            $gte: currentDate.setHours(0, 0, 0, 0),
-                            $lt: currentDate.setHours(23, 59, 59, 999)
-                        }
-                    });
-
                 }
             }
 
@@ -182,39 +199,239 @@ class QuitProgressService {
                 throw new Error('Stage not found');
             }
 
-            const startDate = new Date(stage.start_date);
-            const endDate = new Date(stage.end_date);
-            const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            // Sử dụng duration thay vì tính từ start_date/end_date
+            const totalDays = stage.duration;
+            const currentDate = new Date();
 
-            const progressCount = await QuitProgress.countDocuments({
-                userId,
-                stageId,
-                date: {
-                    $gte: startDate,
-                    $lte: endDate
-                }
-            });
+            let progressCount = 0;
+            let progressEntries = [];
+            let daysPassed = 0;
+            let daysRemaining = totalDays;
+            let stageStatus = 'not_started';
 
-            const progressEntries = await QuitProgress.find({
-                userId,
-                stageId,
-                date: {
-                    $gte: startDate,
-                    $lte: endDate
+            if (stage.start_date) {
+                const startDate = new Date(stage.start_date);
+                const endDate = new Date(startDate.getTime() + (totalDays - 1) * 24 * 60 * 60 * 1000);
+                daysPassed = Math.max(0, Math.ceil((currentDate - startDate) / (1000 * 60 * 60 * 24)));
+                daysRemaining = Math.max(0, totalDays - daysPassed);
+
+                progressCount = await QuitProgress.countDocuments({
+                    userId,
+                    stageId,
+                    date: {
+                        $gte: startDate,
+                        $lte: endDate
+                    }
+                });
+
+                progressEntries = await QuitProgress.find({
+                    userId,
+                    stageId,
+                    date: {
+                        $gte: startDate,
+                        $lte: endDate
+                    }
+                }).sort({ date: 1 });
+
+                // Xác định trạng thái stage
+                if (daysPassed >= totalDays) {
+                    stageStatus = stage.completed ? 'completed' : 'expired';
+                } else if (daysPassed > 0) {
+                    stageStatus = 'in_progress';
                 }
-            }).sort({ date: 1 });
+            } else {
+                // Stage chưa bắt đầu
+                progressCount = await QuitProgress.countDocuments({
+                    userId,
+                    stageId
+                });
+
+                progressEntries = await QuitProgress.find({
+                    userId,
+                    stageId
+                }).sort({ date: 1 });
+            }
+
+            const completionPercentage = Math.round((progressCount / totalDays) * 100);
+            const daysRequiredForCompletion = Math.ceil(totalDays * 0.75);
 
             return {
                 stage: stage,
                 totalDays,
                 completedDays: progressCount,
-                remainingDays: Math.max(0, totalDays - progressCount),
-                completionPercentage: Math.round((progressCount / totalDays) * 100),
+                daysPassed,
+                daysRemaining,
+                remainingDays: Math.max(0, totalDays - progressCount), // Số ngày còn lại cần điểm danh
+                completionPercentage: completionPercentage,
                 isCompleted: stage.completed,
+                stageStatus: stageStatus,
+                canComplete: completionPercentage >= 75,
+                daysRequiredForCompletion: daysRequiredForCompletion,
+                daysUntilCanComplete: Math.max(0, daysRequiredForCompletion - progressCount),
                 progressEntries
             };
         } catch (error) {
             throw new Error(`Error getting stage progress stats: ${error.message}`);
+        }
+    }
+
+    // Hàm chuyển sang stage tiếp theo
+    async moveToNextStage(quitPlanId, userId) {
+        try {
+            const stages = await QuitPlanStage.find({
+                quitPlanId: quitPlanId
+            }).sort({ order_index: 1 });
+
+            const currentStageIndex = stages.findIndex(stage => stage.completed === false);
+
+            if (currentStageIndex !== -1 && currentStageIndex < stages.length - 1) {
+                // Có stage tiếp theo
+                const nextStage = stages[currentStageIndex + 1];
+                const currentDate = new Date();
+
+                // Cập nhật start_date cho stage tiếp theo
+                await QuitPlanStage.findByIdAndUpdate(nextStage._id, {
+                    start_date: currentDate,
+                    end_date: new Date(currentDate.getTime() + (nextStage.duration - 1) * 24 * 60 * 60 * 1000)
+                });
+
+                console.log(`Moved to next stage: ${nextStage.stage_name} for user ${userId}`);
+            } else {
+                // Đã hoàn thành tất cả stages, hoàn thành plan
+                await quitPlanService.completeQuitPlan(quitPlanId, userId);
+                console.log(`Completed all stages for plan ${quitPlanId}, user ${userId}`);
+            }
+        } catch (error) {
+            console.error('Error in moveToNextStage:', error);
+        }
+    }
+
+    // Hàm kiểm tra và auto-complete tất cả các stage đạt ngưỡng 75%
+    async checkAndAutoCompleteStages(userId) {
+        try {
+            const incompleteStages = await QuitPlanStage.find({
+                completed: false
+            });
+
+            for (const stage of incompleteStages) {
+                // Kiểm tra xem stage này có thuộc về user không
+                const quitPlan = await QuitPlan.findById(stage.quitPlanId);
+                if (quitPlan && quitPlan.userId && quitPlan.userId.toString() === userId.toString()) {
+                    await this.checkAndCompleteStage(stage._id, userId);
+                }
+            }
+        } catch (error) {
+            console.error('Error in checkAndAutoCompleteStages:', error);
+        }
+    }
+
+    // Hàm kiểm tra và gửi email nhắc nhở cho user chưa cập nhật sức khỏe
+    async sendDailyReminders() {
+        try {
+            const today = new Date();
+            const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+            const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+            // Tìm tất cả user có plan đang ongoing
+            const ongoingPlans = await QuitPlan.find({
+                status: "ongoing"
+            }).populate('userId', 'userName email');
+
+            for (const plan of ongoingPlans) {
+                try {
+                    // Tìm stage hiện tại của user
+                    const currentStage = await QuitPlanStage.findOne({
+                        quitPlanId: plan._id,
+                        completed: false,
+                        start_date: { $exists: true, $ne: null }
+                    }).sort({ order_index: 1 });
+
+                    if (!currentStage) continue;
+
+                    // Kiểm tra xem user đã cập nhật progress hôm nay chưa
+                    const todayProgress = await QuitProgress.findOne({
+                        userId: plan.userId._id,
+                        stageId: currentStage._id,
+                        date: {
+                            $gte: startOfDay,
+                            $lte: endOfDay
+                        }
+                    });
+
+                    // Nếu chưa cập nhật thì gửi email nhắc nhở
+                    if (!todayProgress && plan.userId.email) {
+                        await this.sendReminderEmail(plan.userId, currentStage);
+                        console.log(`Sent reminder email to ${plan.userId.email}`);
+                    }
+                } catch (error) {
+                    console.error(`Error processing plan ${plan._id}:`, error);
+                }
+            }
+        } catch (error) {
+            console.error('Error in sendDailyReminders:', error);
+        }
+    }
+
+    // Hàm gửi email nhắc nhở
+    async sendReminderEmail(user, stage) {
+        try {
+            const emailHtml = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; text-align: center;">
+                        <h1 style="margin: 0; font-size: 28px;">🌟 Nhắc nhở cập nhật sức khỏe</h1>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; margin-top: 20px;">
+                        <h2 style="color: #333; margin-top: 0;">Xin chào ${user.userName}!</h2>
+                        
+                        <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                            Chúng tôi nhận thấy bạn chưa cập nhật tình trạng sức khỏe hôm nay. 
+                            Việc theo dõi tiến trình hằng ngày là rất quan trọng để đạt được mục tiêu bỏ thuốc lá của bạn.
+                        </p>
+
+                        <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
+                            <h3 style="color: #333; margin-top: 0;">📋 Stage hiện tại: ${stage.stage_name}</h3>
+                            <p style="color: #666; margin-bottom: 0;">${stage.description || 'Tiếp tục hành trình bỏ thuốc lá của bạn!'}</p>
+                        </div>
+
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/progress" 
+                               style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                      color: white; 
+                                      padding: 15px 30px; 
+                                      text-decoration: none; 
+                                      border-radius: 25px; 
+                                      font-weight: bold; 
+                                      display: inline-block;
+                                      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                                💪 Cập nhật ngay
+                            </a>
+                        </div>
+
+                        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                            <h4 style="color: #1976d2; margin-top: 0;">💡 Lời khuyên:</h4>
+                            <ul style="color: #666; margin-bottom: 0;">
+                                <li>Hãy dành 2-3 phút mỗi ngày để cập nhật tình trạng sức khỏe</li>
+                                <li>Ghi chú lại cảm xúc và những thay đổi tích cực bạn nhận thấy</li>
+                                <li>Nhớ rằng mỗi ngày không hút thuốc là một chiến thắng!</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px; color: #888; font-size: 14px;">
+                        <p>Đội ngũ hỗ trợ bỏ thuốc lá luôn đồng hành cùng bạn! 🚭✨</p>
+                        <p>Email này được gửi tự động vào 20:00 hằng ngày.</p>
+                    </div>
+                </div>
+            `;
+
+            await sendMail({
+                email: user.email,
+                subject: "🌟 Nhắc nhở cập nhật sức khỏe - Hành trình bỏ thuốc lá",
+                html: emailHtml
+            });
+        } catch (error) {
+            console.error('Error sending reminder email:', error);
         }
     }
 }

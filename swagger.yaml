@@ -3937,6 +3937,111 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /quitprogress/check-auto-complete:
+    post:
+      tags:
+        - QuitProgress
+      summary: Check and auto-complete user stages
+      description: Checks all stages for the authenticated user and automatically completes those that meet the 75% completion threshold (user only).
+      operationId: checkAndAutoCompleteStages
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Auto-complete check completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Checked and auto-completed stages successfully'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitprogress/process-expired-stages:
+    post:
+      tags:
+        - QuitProgress
+      summary: Process expired stages for user
+      description: Processes all expired stages for the authenticated user and automatically marks them as completed or failed based on progress (user only).
+      operationId: processExpiredStages
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Expired stages processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Processed expired stages successfully'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitprogress/send-test-reminder:
+    post:
+      tags:
+        - QuitProgress
+      summary: Send test reminder emails
+      description: Manually triggers the daily reminder email system to send reminder emails to users who haven't updated their progress today (admin only).
+      operationId: sendTestReminder
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Test reminder emails sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Test reminder emails sent successfully'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /quitprogress/check-failed-plans:
     post:
       tags:
@@ -5374,24 +5479,49 @@ components:
           description: Details of the stage
         totalDays:
           type: integer
-          example: 7
-          description: Total number of days required for this stage
+          example: 10
+          description: Total number of days required for this stage (from duration field)
         completedDays:
           type: integer
-          example: 5
+          example: 8
           description: Number of days user has logged progress
+        daysPassed:
+          type: integer
+          example: 9
+          description: Number of days that have passed since stage started
+        daysRemaining:
+          type: integer
+          example: 1
+          description: Number of days remaining until stage duration expires
         remainingDays:
           type: integer
           example: 2
-          description: Number of days remaining to complete the stage
+          description: Number of days still needed to log progress
         completionPercentage:
           type: integer
-          example: 71
+          example: 80
           description: Percentage of completion (0-100)
         isCompleted:
           type: boolean
-          example: false
+          example: true
           description: Whether the stage has been completed
+        stageStatus:
+          type: string
+          enum: ['not_started', 'in_progress', 'completed', 'expired']
+          example: 'completed'
+          description: Current status of the stage
+        canComplete:
+          type: boolean
+          example: true
+          description: Whether the stage can be completed (>= 75% progress)
+        daysRequiredForCompletion:
+          type: integer
+          example: 8
+          description: Number of days required for 75% completion (75% of totalDays)
+        daysUntilCanComplete:
+          type: integer
+          example: 0
+          description: Number of additional days needed to reach 75% completion
         progressEntries:
           type: array
           items:
@@ -5401,9 +5531,16 @@ components:
         - stage
         - totalDays
         - completedDays
+        - daysPassed
+        - daysRemaining
         - remainingDays
         - completionPercentage
-                 - isCompleted
+        - isCompleted
+        - stageStatus
+        - canComplete
+        - daysRequiredForCompletion
+        - daysUntilCanComplete
+        - progressEntries
     PlanDurationStats:
       type: object
       properties:
