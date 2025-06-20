@@ -34,5 +34,6 @@ router.delete('/quitplan-stages/:id', authMiddleware, restrictTo('coach', 'admin
 
 router.post('/quitplans/:quitPlanId/badges', authMiddleware, restrictTo('coach'), quitPlanController.awardBadgeToQuitPlan);
 router.get('/quitplans/:quitPlanId/badges', authMiddleware, quitPlanController.getQuitPlanBadges);
+router.get('/quitplans/:quitPlanId/badge', authMiddleware, restrictTo('coach'), quitPlanController.getBadgeByPlanId);
 
 module.exports = router;

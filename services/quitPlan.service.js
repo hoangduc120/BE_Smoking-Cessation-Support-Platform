@@ -49,9 +49,7 @@ class QuitPlanService {
       if (!quitPlan) {
         throw new Error('Quit plan not found');
       }
-      const badges = await Badge.find({ quitPlanId: id })
-        .populate('userId', 'userName email')
-      return { quitPlan, badges };
+      return { quitPlan };
     } catch (error) {
       throw new Error('Failed to get quit plan');
     }
@@ -223,7 +221,7 @@ class QuitPlanService {
       }
 
       if (!badge) {
-        return []; 
+        return [];
       }
 
       const UserBadge = require('../models/userBadge.model');
@@ -240,6 +238,28 @@ class QuitPlanService {
       }));
     } catch (error) {
       throw new Error('Failed to get quit plan badges');
+    }
+  }
+  async getBadgeByPlanId(quitPlanId) {
+    try {
+      const quitPlan = await QuitPlan.findById(quitPlanId);
+      if (!quitPlan) {
+        throw new Error('Quit plan not found');
+      }
+
+      let badge = null;
+
+      if (quitPlan.templateId) {
+        badge = await Badge.findOne({ quitPlanId: quitPlan.templateId });
+      }
+
+      if (!badge) {
+        badge = await Badge.findOne({ quitPlanId: quitPlanId });
+      }
+
+      return badge;
+    } catch (error) {
+      throw new Error('Failed to get badge for quit plan');
     }
   }
   async selectQuitPlan(userId, quitPlanId) {
@@ -267,7 +287,7 @@ class QuitPlanService {
         status: "ongoing",
         startDate,
         endDate,
-        templateId: templatePlan._id, 
+        templateId: templatePlan._id,
         _id: undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -285,7 +305,7 @@ class QuitPlanService {
           const stageStartDate = new Date(currentStageStartDate);
           const stageEndDate = new Date(stageStartDate.getTime() + (stage.duration * 24 * 60 * 60 * 1000));
 
-          currentStageStartDate = new Date(stageEndDate.getTime() + (24 * 60 * 60 * 1000)); 
+          currentStageStartDate = new Date(stageEndDate);
 
           return {
             ...stage.toObject(),
