@@ -83,26 +83,26 @@ class QuitProgressService {
             }
 
             const totalDays = stage.duration;
-
             const stageStartDate = stage.start_date ? new Date(stage.start_date) : null;
-            let progressCount = 0;
 
             if (stageStartDate) {
                 const currentDate = new Date();
-                const stageEndDate = new Date(stageStartDate.getTime() + (totalDays - 1) * 24 * 60 * 60 * 1000);
+                const stageEndDate = new Date(stageStartDate.getTime() + (totalDays * 24 * 60 * 60 * 1000));
 
-                progressCount = await QuitProgress.countDocuments({
-                    userId,
-                    stageId,
-                    date: {
-                        $gte: stageStartDate,
-                        $lte: stageEndDate
-                    }
-                });
+                // CHỈ tính số ngày hoàn chỉnh đã trôi qua (không làm tròn lên)
+                const daysPassed = Math.floor((currentDate - stageStartDate) / (1000 * 60 * 60 * 24));
 
-                const daysPassed = Math.ceil((currentDate - stageStartDate) / (1000 * 60 * 60 * 24));
+                // CHỈ kiểm tra completion khi stage thực sự đã hết hạn (currentDate > stageEndDate)
+                if (currentDate >= stageEndDate) {
+                    const progressCount = await QuitProgress.countDocuments({
+                        userId,
+                        stageId,
+                        date: {
+                            $gte: stageStartDate,
+                            $lt: stageEndDate
+                        }
+                    });
 
-                if (daysPassed >= totalDays) {
                     const completionPercentage = (progressCount / totalDays) * 100;
 
                     if (completionPercentage >= 75) {
@@ -112,17 +112,7 @@ class QuitProgressService {
                         await quitPlanService.failQuitPlan(stage.quitPlanId, userId);
                     }
                 }
-            } else {
-                progressCount = await QuitProgress.countDocuments({
-                    userId,
-                    stageId
-                });
-
-                const completionPercentage = (progressCount / totalDays) * 100;
-                if (completionPercentage >= 75) {
-                    await quitPlanService.completeStage(stageId, userId);
-                    await this.moveToNextStage(stage.quitPlanId, userId);
-                }
+                // Nếu stage chưa hết hạn, không làm gì cả - cho phép user tiếp tục cập nhật
             }
         } catch (error) {
             console.error('Error in checkAndCompleteStage:', error);
@@ -152,32 +142,28 @@ class QuitProgressService {
             for (const stage of stages) {
                 if (stage.completed) continue;
 
-                // Sử dụng duration để tính toán
                 const totalDays = stage.duration;
 
                 if (stage.start_date) {
                     const stageStartDate = new Date(stage.start_date);
-                    const stageEndDate = new Date(stageStartDate.getTime() + (totalDays - 1) * 24 * 60 * 60 * 1000);
-                    const daysPassed = Math.ceil((currentDate - stageStartDate) / (1000 * 60 * 60 * 24));
+                    const stageEndDate = new Date(stageStartDate.getTime() + (totalDays * 24 * 60 * 60 * 1000));
 
-                    // Kiểm tra nếu đã hết thời gian duration
-                    if (daysPassed >= totalDays && !stage.completed) {
+                    // CHỈ kiểm tra khi stage thực sự đã hết hạn
+                    if (currentDate >= stageEndDate && !stage.completed) {
                         const progressCount = await QuitProgress.countDocuments({
                             userId,
                             stageId: stage._id,
                             date: {
                                 $gte: stageStartDate,
-                                $lte: stageEndDate
+                                $lt: stageEndDate
                             }
                         });
 
-                        // Kiểm tra nếu % hoàn thành < 75% thì stage failed
                         const completionPercentage = (progressCount / totalDays) * 100;
                         if (completionPercentage < 75) {
                             await quitPlanService.failQuitPlan(planId, userId);
                             return true;
                         } else {
-                            // Hoàn thành stage và chuyển sang stage tiếp theo
                             await quitPlanService.completeStage(stage._id, userId);
                             await this.moveToNextStage(planId, userId);
                         }
@@ -199,7 +185,6 @@ class QuitProgressService {
                 throw new Error('Stage not found');
             }
 
-            // Sử dụng duration thay vì tính từ start_date/end_date
             const totalDays = stage.duration;
             const currentDate = new Date();
 
@@ -211,8 +196,9 @@ class QuitProgressService {
 
             if (stage.start_date) {
                 const startDate = new Date(stage.start_date);
-                const endDate = new Date(startDate.getTime() + (totalDays - 1) * 24 * 60 * 60 * 1000);
-                daysPassed = Math.max(0, Math.ceil((currentDate - startDate) / (1000 * 60 * 60 * 24)));
+                const endDate = new Date(startDate.getTime() + (totalDays * 24 * 60 * 60 * 1000));
+                // Tính số ngày hoàn chỉnh đã trôi qua (không làm tròn lên)
+                daysPassed = Math.max(0, Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24)));
                 daysRemaining = Math.max(0, totalDays - daysPassed);
 
                 progressCount = await QuitProgress.countDocuments({
@@ -220,7 +206,7 @@ class QuitProgressService {
                     stageId,
                     date: {
                         $gte: startDate,
-                        $lte: endDate
+                        $lt: endDate
                     }
                 });
 
@@ -229,18 +215,17 @@ class QuitProgressService {
                     stageId,
                     date: {
                         $gte: startDate,
-                        $lte: endDate
+                        $lt: endDate
                     }
                 }).sort({ date: 1 });
 
-                // Xác định trạng thái stage
-                if (daysPassed >= totalDays) {
+                // Kiểm tra trạng thái stage dựa trên thời gian thực sự đã hết hạn
+                if (currentDate >= endDate) {
                     stageStatus = stage.completed ? 'completed' : 'expired';
-                } else if (daysPassed > 0) {
+                } else if (daysPassed > 0 || progressCount > 0) {
                     stageStatus = 'in_progress';
                 }
             } else {
-                // Stage chưa bắt đầu
                 progressCount = await QuitProgress.countDocuments({
                     userId,
                     stageId
@@ -292,13 +277,12 @@ class QuitProgressService {
                 // Cập nhật start_date cho stage tiếp theo
                 await QuitPlanStage.findByIdAndUpdate(nextStage._id, {
                     start_date: currentDate,
-                    end_date: new Date(currentDate.getTime() + (nextStage.duration - 1) * 24 * 60 * 60 * 1000)
+                    end_date: new Date(currentDate.getTime() + (nextStage.duration * 24 * 60 * 60 * 1000))
                 });
 
                 console.log(`Moved to next stage: ${nextStage.stage_name} for user ${userId}`);
             } else {
-                // Đã hoàn thành tất cả stages, hoàn thành plan
-                await quitPlanService.completeQuitPlan(quitPlanId, userId);
+                await quitPlanService.completePlan(quitPlanId, userId);
                 console.log(`Completed all stages for plan ${quitPlanId}, user ${userId}`);
             }
         } catch (error) {

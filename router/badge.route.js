@@ -5,7 +5,7 @@ const { authMiddleware, restrictTo } = require('../middlewares/authMiddleware');
 
 router.get('/my', authMiddleware, badgeController.getUserBadges);
 
-router.get('/all', authMiddleware, restrictTo('admin', 'coach'), badgeController.getAllBadges);
+router.get('/all', authMiddleware, restrictTo('admin'), badgeController.getAllBadges);
 
 router.post('/create-for-plan', authMiddleware, restrictTo('coach'), badgeController.createBadgeForPlan);
 

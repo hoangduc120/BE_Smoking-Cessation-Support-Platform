@@ -48,9 +48,10 @@ class QuitPlanController {
   }
   async getQuitPlan(req, res) {
     try {
-      const { quitPlan, badges } = await quitPlanService.getQuitPlanById(req.params.id)
-      return OK(res, 'Quit plan fetched successfully', { quitPlan, badges });
+      const { quitPlan } = await quitPlanService.getQuitPlanById(req.params.id)
+      return OK(res, 'Quit plan fetched successfully', { quitPlan });
     } catch (error) {
+      console.log(error);
       return BAD_REQUEST(res, error.message);
     }
   }
@@ -136,6 +137,17 @@ class QuitPlanController {
     try {
       const badges = await quitPlanService.getQuitPlanBadges(req.params.quitPlanId)
       return OK(res, 'Quit plan badges fetched successfully', badges);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
+  async getBadgeByPlanId(req, res) {
+    try {
+      const badge = await quitPlanService.getBadgeByPlanId(req.params.quitPlanId);
+      if (!badge) {
+        return OK(res, 'No badge found for this quit plan', null);
+      }
+      return OK(res, 'Badge fetched successfully', badge);
     } catch (error) {
       return BAD_REQUEST(res, error.message);
     }

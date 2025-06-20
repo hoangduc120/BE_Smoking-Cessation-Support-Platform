@@ -2978,6 +2978,62 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /plans/quitplans/{quitPlanId}/badge:
+    get:
+      tags:
+        - Badge
+      summary: Get quit plan badge information (Coach only)
+      description: Retrieves the badge information for a specific quit plan template, regardless of whether any users have completed it. Returns the badge details if one exists for the plan or its template.
+      operationId: getBadgeByPlanId
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: quitPlanId
+          in: path
+          required: true
+          description: ID of the quit plan to get badge information for
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Badge information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: 'Badge fetched successfully'
+                  data:
+                    $ref: '#/components/schemas/BadgeInfo'
+                    nullable: true
+                    description: Badge information or null if no badge exists for this plan
+                  options:
+                    type: object
+                    example: {}
+        '400':
+          description: Bad request - Invalid plan ID or request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Quit plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /plans/quitplans/{quitPlanId}/badges:
     get:
       tags:
@@ -3655,7 +3711,7 @@ paths:
       tags:
         - QuitProgress
       summary: Create daily quit progress
-      description: Creates a new daily quit progress record for the authenticated user (requires user role). System automatically checks if stage is completed when user logs progress for all required days. Only one progress entry per stage per day is allowed.
+      description: Creates a new daily quit progress record for the authenticated user (requires user role). System checks stage completion only when the stage duration fully expires (24+ hours after start). Stages require >= 75% daily progress to pass, otherwise the entire plan fails. Only one progress entry per stage per day is allowed.
       operationId: createQuitProgress
       security:
         - BearerAuth: []
@@ -3900,7 +3956,7 @@ paths:
       tags:
         - QuitProgress
       summary: Get stage progress statistics
-      description: Retrieves detailed statistics about progress for a specific stage, including completion percentage and daily entries.
+      description: Retrieves detailed statistics about progress for a specific stage, including completion percentage, daily entries, and real-time status. Stage status changes only when duration fully expires (not during the stage duration). Shows precise progress tracking within active stages.
       operationId: getStageProgressStats
       security:
         - BearerAuth: []
@@ -3942,7 +3998,7 @@ paths:
       tags:
         - QuitProgress
       summary: Check and auto-complete user stages
-      description: Checks all stages for the authenticated user and automatically completes those that meet the 75% completion threshold (user only).
+      description: Checks all stages for the authenticated user and automatically processes those that have fully expired (24+ hours after start). Stages with >= 75% progress are completed, stages with < 75% cause plan failure (user only).
       operationId: checkAndAutoCompleteStages
       security:
         - BearerAuth: []
@@ -3977,7 +4033,7 @@ paths:
       tags:
         - QuitProgress
       summary: Process expired stages for user
-      description: Processes all expired stages for the authenticated user and automatically marks them as completed or failed based on progress (user only).
+      description: Processes all fully expired stages (24+ hours past start time) for the authenticated user. Automatically completes stages with >= 75% progress or fails the entire plan if < 75% progress (user only).
       operationId: processExpiredStages
       security:
         - BearerAuth: []
@@ -4047,7 +4103,7 @@ paths:
       tags:
         - QuitProgress
       summary: Check for failed quit plans
-      description: Checks all ongoing quit plans and automatically marks as failed those that don't meet daily progress requirements (admin only).
+      description: Checks all ongoing quit plans and automatically marks as failed those with fully expired stages (24+ hours past start) that have < 75% daily progress completion rate (admin only).
       operationId: checkFailedPlans
       security:
         - BearerAuth: []
@@ -4301,6 +4357,34 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
 components:
+  x-timing-behavior-documentation: |
+    **QUIT PROGRESS TIMING LOGIC - CRITICAL BEHAVIOR:**
+    
+    The QuitProgress system implements strict timing controls to prevent premature plan failures:
+    
+    1. **Stage Completion Timing:**
+       - Stages are only evaluated for completion when their full duration has elapsed (24+ hours)
+       - Progress logged within a stage's duration does NOT trigger immediate completion checks
+       - Example: Stage starts 08:03, user logs at 08:05 → daysPassed = 0 (Math.floor), no completion check
+    
+    2. **Day Calculation:**
+       - Uses Math.floor() instead of Math.ceil() to count only complete elapsed days
+       - Prevents rounding up partial days that would trigger premature evaluations
+    
+    3. **Completion Criteria:**
+       - Stages require >= 75% daily progress entries to pass when duration expires
+       - Stages with < 75% progress cause the entire plan to fail (status = "failed")
+       - All stages must pass for plan completion and badge awarding
+    
+    4. **Timeline Example:**
+       - Plan starts: 2025-06-20 08:03:39
+       - Stage 1 duration: 1 day
+       - Stage 1 expires: 2025-06-21 08:03:39 (24+ hours later)
+       - User progress at 08:05 same day → No evaluation, plan remains "ongoing"
+       - Evaluation only happens after stage expiration time
+    
+    This ensures users have the full allocated time for each stage before evaluation.
+
   securitySchemes:
     BearerAuth:
       type: http
@@ -5346,6 +5430,43 @@ components:
         - userId
         - name
         - awardedAt
+    BadgeInfo:
+      type: object
+      description: Badge information for a quit plan template (without user assignment details)
+      properties:
+        _id:
+          type: string
+          example: 'badge-12345'
+        quitPlanId:
+          type: string
+          example: '12345'
+          description: ID of the quit plan this badge belongs to
+        name:
+          type: string
+          example: 'Plan Completion Master'
+          description: Name of the badge
+        description:
+          type: string
+          example: 'Successfully completed 30-day smoking cessation plan'
+          description: Description of the achievement required for this badge
+        icon_url:
+          type: string
+          nullable: true
+          example: '/badges/plan-completion-master.png'
+          description: URL to the badge icon
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-01-21T10:30:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-01-21T10:30:00.000Z'
+      required:
+        - _id
+        - quitPlanId
+        - name
+        - description
     BadgeCreateRequest:
       type: object
       properties:
@@ -5446,6 +5567,14 @@ components:
         - date
         - cigarettesSmoked
         - healthStatus
+      x-timing-logic: |
+        **IMPORTANT TIMING BEHAVIOR:**
+        - Stage completion is checked only when 24+ hours have passed since stage start_date
+        - Progress logged within the stage duration does NOT trigger immediate completion checks
+        - Example: Stage starts at 08:03, user logs progress at 08:05 → NO completion check (daysPassed = 0)
+        - Completion check only happens after 08:03 the next day (24+ hours later)
+        - This prevents premature plan failures and allows full stage duration for user progress
+        - Uses Math.floor() for day calculation, not Math.ceil() to avoid rounding up partial days
     QuitProgressUpdateRequest:
       type: object
       properties:
@@ -5487,12 +5616,12 @@ components:
           description: Number of days user has logged progress
         daysPassed:
           type: integer
-          example: 9
-          description: Number of days that have passed since stage started
+          example: 0
+          description: Number of complete days that have passed since stage started (calculated with Math.floor, not rounded up)
         daysRemaining:
           type: integer
           example: 1
-          description: Number of days remaining until stage duration expires
+          description: Number of days remaining until stage duration fully expires
         remainingDays:
           type: integer
           example: 2
@@ -5508,12 +5637,12 @@ components:
         stageStatus:
           type: string
           enum: ['not_started', 'in_progress', 'completed', 'expired']
-          example: 'completed'
-          description: Current status of the stage
+          example: 'in_progress'
+          description: Status based on actual time elapsed - only changes to 'expired' when 24+ hours have passed, not during stage duration
         canComplete:
           type: boolean
           example: true
-          description: Whether the stage can be completed (>= 75% progress)
+          description: Whether the stage has >= 75% progress (completion threshold)
         daysRequiredForCompletion:
           type: integer
           example: 8
