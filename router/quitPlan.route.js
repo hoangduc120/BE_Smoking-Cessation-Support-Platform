@@ -36,4 +36,6 @@ router.post('/quitplans/:quitPlanId/badges', authMiddleware, restrictTo('coach')
 router.get('/quitplans/:quitPlanId/badges', authMiddleware, quitPlanController.getQuitPlanBadges);
 router.get('/quitplans/:quitPlanId/badge', authMiddleware, restrictTo('coach'), quitPlanController.getBadgeByPlanId);
 
+router.post('/quitplans/:planId/fix-and-check', authMiddleware, restrictTo('user'), quitPlanController.fixStageTimingAndCheck);
+
 module.exports = router;

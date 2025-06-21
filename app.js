@@ -35,6 +35,10 @@ app.use(
         resave: false,
         saveUninitialized: false,
         cookie: { secure: true, sameSite: 'none' },
+        // cookie: {
+        //     secure: process.env.NODE_ENV === "production", // true nếu production (https)
+        //     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        // },
     })
 );
 app.use(passport.initialize());

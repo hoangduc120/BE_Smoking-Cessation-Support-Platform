@@ -237,6 +237,26 @@ class QuitPlanController {
       return BAD_REQUEST(res, error.message);
     }
   }
+
+  async fixStageTimingAndCheck(req, res) {
+    try {
+      const userId = req.user._id;
+      const { planId } = req.params;
+
+      await quitPlanService.fixStageTiming(planId);
+
+      const hasChanges = await quitPlanService.checkExpiredStages(planId, userId);
+
+      const updatedData = await quitPlanService.getUserCurrentPlan(userId);
+
+      return OK(res, hasChanges ? 'Stage timing fixed and expired stages processed' : 'Stage timing fixed, no expired stages', {
+        hasChanges,
+        plan: updatedData
+      });
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
 }
 
 module.exports = new QuitPlanController();
