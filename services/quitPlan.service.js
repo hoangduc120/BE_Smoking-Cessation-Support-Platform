@@ -305,7 +305,7 @@ class QuitPlanService {
           const stageStartDate = new Date(currentStageStartDate);
           const stageEndDate = new Date(stageStartDate.getTime() + (stage.duration * 24 * 60 * 60 * 1000));
 
-          currentStageStartDate = new Date(stageEndDate);
+          currentStageStartDate = new Date(stageEndDate.getTime());
 
           return {
             ...stage.toObject(),
@@ -541,6 +541,73 @@ class QuitPlanService {
       };
     } catch (error) {
       throw new Error(`Failed to get user plan history: ${error.message}`);
+    }
+  }
+
+  // Thêm method để fix stage timing
+  async fixStageTiming(planId) {
+    try {
+      const plan = await QuitPlan.findById(planId);
+      if (!plan || plan.status !== "ongoing") {
+        throw new Error('Plan not found or not ongoing');
+      }
+
+      const stages = await QuitPlanStage.find({ quitPlanId: planId })
+        .sort({ order_index: 1 });
+
+      if (stages.length === 0) return;
+
+      // Fix timing để stages chạy liên tiếp
+      let currentStartDate = new Date(plan.startDate);
+
+      for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        const stageEndDate = new Date(currentStartDate.getTime() + (stage.duration * 24 * 60 * 60 * 1000));
+
+        await QuitPlanStage.findByIdAndUpdate(stage._id, {
+          start_date: currentStartDate,
+          end_date: stageEndDate
+        });
+
+        // Stage tiếp theo bắt đầu ngay khi stage hiện tại kết thúc
+        currentStartDate = new Date(stageEndDate.getTime());
+      }
+
+      console.log(`Fixed timing for plan ${planId} with ${stages.length} stages`);
+      return true;
+    } catch (error) {
+      console.error('Error fixing stage timing:', error);
+      throw error;
+    }
+  }
+
+  // Thêm method để kiểm tra và complete các stage đã hết hạn
+  async checkExpiredStages(planId, userId) {
+    try {
+      const quitProgressService = require('./quitProgress.service');
+
+      const stages = await QuitPlanStage.find({ quitPlanId: planId, completed: false })
+        .sort({ order_index: 1 });
+
+      const currentDate = new Date();
+      let hasChanges = false;
+
+      for (const stage of stages) {
+        if (stage.start_date && stage.end_date) {
+          const stageEndDate = new Date(stage.end_date);
+
+          // Kiểm tra nếu stage đã hết hạn
+          if (currentDate >= stageEndDate && !stage.completed) {
+            await quitProgressService.checkAndCompleteStage(stage._id, userId);
+            hasChanges = true;
+          }
+        }
+      }
+
+      return hasChanges;
+    } catch (error) {
+      console.error('Error checking expired stages:', error);
+      throw error;
     }
   }
 }

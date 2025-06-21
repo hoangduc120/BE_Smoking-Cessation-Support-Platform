@@ -1,4 +1,6 @@
 const quitProgressService = require("../services/quitProgress.service")
+const QuitPlanStage = require("../models/quitPlanStage.model")
+const QuitProgress = require("../models/quitProgress.model")
 
 
 class QuitProgressController {
@@ -103,6 +105,78 @@ class QuitProgressController {
         try {
             await quitProgressService.sendDailyReminders()
             res.json({ message: "Test reminder emails sent successfully" })
+        } catch (error) {
+            res.status(500).json({ message: error.message })
+        }
+    }
+
+    async debugStageCompletion(req, res) {
+        try {
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" })
+            }
+            const userId = req.user._id
+            const { stageId } = req.params
+
+            const stage = await QuitPlanStage.findById(stageId);
+            if (!stage) {
+                return res.status(404).json({ message: "Stage not found" })
+            }
+
+            const currentDate = new Date();
+            const stageStartDate = new Date(stage.start_date);
+            const stageEndDate = new Date(stage.end_date);
+
+            const progressCount = await QuitProgress.countDocuments({
+                userId,
+                stageId,
+                date: {
+                    $gte: stageStartDate,
+                    $lt: stageEndDate
+                }
+            });
+
+            const totalDays = stage.duration;
+            const completionPercentage = (progressCount / totalDays) * 100;
+            const isExpired = currentDate >= stageEndDate;
+
+            const debugInfo = {
+                stageInfo: {
+                    id: stage._id,
+                    name: stage.stage_name,
+                    duration: stage.duration,
+                    completed: stage.completed,
+                    startDate: stage.start_date,
+                    endDate: stage.end_date
+                },
+                timeInfo: {
+                    currentDate: currentDate.toISOString(),
+                    stageStartDate: stageStartDate.toISOString(),
+                    stageEndDate: stageEndDate.toISOString(),
+                    isExpired: isExpired,
+                    hoursOverdue: isExpired ? Math.floor((currentDate - stageEndDate) / (1000 * 60 * 60)) : 0
+                },
+                progressInfo: {
+                    progressCount: progressCount,
+                    totalDays: totalDays,
+                    completionPercentage: completionPercentage,
+                    canComplete: completionPercentage >= 75
+                }
+            };
+
+            if (isExpired && completionPercentage >= 75 && !stage.completed) {
+                await quitProgressService.checkAndCompleteStage(stageId, userId);
+                debugInfo.action = "Auto-completed stage";
+            } else if (isExpired && completionPercentage < 75 && !stage.completed) {
+                debugInfo.action = "Stage should fail plan";
+            } else {
+                debugInfo.action = "No action needed";
+            }
+
+            res.json({
+                message: "Debug stage completion info",
+                debug: debugInfo
+            });
         } catch (error) {
             res.status(500).json({ message: error.message })
         }

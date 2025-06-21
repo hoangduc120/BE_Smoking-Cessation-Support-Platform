@@ -16,4 +16,6 @@ router.post('/process-expired-stages', authMiddleware, restrictTo('user'), quitP
 router.post('/send-test-reminder', authMiddleware, restrictTo('admin'), quitProgressController.sendTestReminder)
 router.post('/check-failed-plans', authMiddleware, restrictTo('admin'), quitProgressController.checkFailedPlans)
 
+router.get('/debug-stage/:stageId', authMiddleware, restrictTo('user'), quitProgressController.debugStageCompletion)
+
 module.exports = router;
