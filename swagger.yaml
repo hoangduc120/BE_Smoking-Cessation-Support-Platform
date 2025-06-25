@@ -3194,6 +3194,151 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /plans/quitplans/cancel:
+    post:
+      tags:
+        - QuitPlan
+      summary: Cancel ongoing quit plan
+      description: Allows a user to cancel their current ongoing quit plan. This enables them to select a new plan. The cancellation reason is optional.
+      operationId: cancelQuitPlan
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: 'Muốn thử kế hoạch khác phù hợp hơn'
+                  description: Optional reason for cancelling the plan
+            example:
+              reason: "Muốn thử kế hoạch khác phù hợp hơn"
+        required: false
+      responses:
+        '200':
+          description: Quit plan cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Quit plan cancelled successfully'
+                  data:
+                    type: object
+                    properties:
+                      cancelledPlan:
+                        $ref: '#/components/schemas/QuitPlan'
+                      progress:
+                        type: object
+                        properties:
+                          completedStages:
+                            type: integer
+                            example: 2
+                            description: Number of stages completed before cancellation
+                          totalStages:
+                            type: integer
+                            example: 5
+                            description: Total stages in the plan
+                          progressEntries:
+                            type: integer
+                            example: 8
+                            description: Number of progress entries made
+                          completionPercentage:
+                            type: integer
+                            example: 40
+                            description: Completion percentage before cancellation
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: No ongoing quit plan found to cancel
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /plans/quitplans/can-cancel:
+    get:
+      tags:
+        - QuitPlan
+      summary: Check if user can cancel quit plan
+      description: Checks whether the authenticated user has an ongoing quit plan that can be cancelled, and provides plan information.
+      operationId: canCancelQuitPlan
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Cancel eligibility checked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Cancel eligibility checked successfully'
+                  data:
+                    type: object
+                    properties:
+                      canCancel:
+                        type: boolean
+                        example: true
+                        description: Whether the user can cancel their current plan
+                      reason:
+                        type: string
+                        example: 'Có thể hủy quit plan'
+                        description: Explanation of eligibility status
+                      planInfo:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: string
+                            example: '12345'
+                            description: ID of the current plan
+                          title:
+                            type: string
+                            example: 'Kế hoạch cai thuốc 30 ngày'
+                            description: Title of the current plan
+                          startDate:
+                            type: string
+                            format: date-time
+                            example: '2024-01-01T00:00:00.000Z'
+                            description: Start date of the plan
+                          completedStages:
+                            type: integer
+                            example: 2
+                            description: Number of completed stages
+                          totalStages:
+                            type: integer
+                            example: 5
+                            description: Total stages in the plan
+                          progressEntries:
+                            type: integer
+                            example: 8
+                            description: Number of progress entries made
+                          completionPercentage:
+                            type: integer
+                            example: 40
+                            description: Current completion percentage
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /plans/quitplans/current:
     get:
       tags:
@@ -5236,8 +5381,19 @@ components:
           description: 'Số ngày của kế hoạch (bắt buộc cho template)'
         status:
           type: string
-          enum: ['template', 'pending', 'ongoing', 'completed', 'failed']
+          enum: ['template', 'pending', 'ongoing', 'completed', 'failed', 'cancelled']
           example: 'template'
+        cancelReason:
+          type: string
+          nullable: true
+          example: 'Muốn thử kế hoạch khác phù hợp hơn'
+          description: 'Lý do hủy kế hoạch (chỉ có khi status là cancelled)'
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2025-01-21T13:46:00.000Z'
+          description: 'Thời gian hủy kế hoạch (chỉ có khi status là cancelled)'
         createdAt:
           type: string
           format: date-time
@@ -5295,7 +5451,7 @@ components:
           description: 'Số ngày của kế hoạch (chỉ cập nhật cho template)'
         status:
           type: string
-          enum: ['template', 'pending', 'ongoing', 'completed', 'failed']
+          enum: ['template', 'pending', 'ongoing', 'completed', 'failed', 'cancelled']
           example: 'ongoing'
     QuitPlanStage:
       type: object
@@ -6183,6 +6339,10 @@ components:
           type: integer
           example: 2
           description: Number of failed plans
+        cancelledPlans:
+          type: integer
+          example: 1
+          description: Number of cancelled plans
         templatePlans:
           type: integer
           example: 0
@@ -6196,6 +6356,7 @@ components:
         - completedPlans
         - ongoingPlans
         - failedPlans
+        - cancelledPlans
         - templatePlans
         - totalBadges
     PlanCompletionResponse:

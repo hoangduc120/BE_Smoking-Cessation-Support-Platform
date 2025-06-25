@@ -11,6 +11,7 @@ const { swaggerUi, swaggerSpec } = require("./configs/swagger");
 const MembershipScheduler = require("./utils/membershipScheduler");
 const { startFailedPlansChecker } = require("./cron/checkFailedPlans");
 const { startDailyReminders } = require("./cron/dailyReminders");
+const { startExpiredStagesChecker } = require("./cron/checkExpiredStages");
 
 const app = express();
 
@@ -45,7 +46,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Swagger UI route
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // 🆕 Thêm swagger route
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec)); 
 
 // Routes
 const appRoutes = require("./router/appRoutes");
@@ -56,6 +57,7 @@ app.use("/", appRoutes);
 MembershipScheduler.initScheduler();
 startFailedPlansChecker();
 startDailyReminders();
+startExpiredStagesChecker();
 
 // Error handling
 app.use((req, res, next) => {

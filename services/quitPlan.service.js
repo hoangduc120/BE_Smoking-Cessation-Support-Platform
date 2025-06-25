@@ -299,13 +299,24 @@ class QuitPlanService {
         .sort({ order_index: 1 });
 
       if (templateStages.length > 0) {
-        let currentStageStartDate = new Date(startDate);
+        // Bắt đầu từ đầu ngày hôm nay (0h00)
+        const startOfToday = new Date(startDate);
+        startOfToday.setHours(0, 0, 0, 0);
+
+        let currentDayOffset = 0;
 
         const newStages = templateStages.map(stage => {
-          const stageStartDate = new Date(currentStageStartDate);
-          const stageEndDate = new Date(stageStartDate.getTime() + (stage.duration * 24 * 60 * 60 * 1000));
+          // Stage bắt đầu từ đầu ngày (0h00)
+          const stageStartDate = new Date(startOfToday);
+          stageStartDate.setDate(startOfToday.getDate() + currentDayOffset);
 
-          currentStageStartDate = new Date(stageEndDate.getTime());
+          // Stage kết thúc vào cuối ngày (23h59:59.999)
+          const stageEndDate = new Date(stageStartDate);
+          stageEndDate.setDate(stageStartDate.getDate() + stage.duration - 1);
+          stageEndDate.setHours(23, 59, 59, 999);
+
+          // Tăng offset cho stage tiếp theo
+          currentDayOffset += stage.duration;
 
           return {
             ...stage.toObject(),
@@ -397,14 +408,20 @@ class QuitPlanService {
       if (!plan) {
         throw new Error('Quit plan not found or not ongoing');
       }
+
+      console.log(`Completing plan ${planId} for user ${userId}`);
       plan.status = "completed";
       await plan.save();
 
       let badge = null;
       try {
         const badgeService = require('./badge.service');
+        console.log(`Attempting to award badge for plan ${planId}...`);
         badge = await badgeService.awardPlanBadgeToUser(planId, userId);
+        console.log(`Badge awarded successfully:`, badge ? badge._id : 'null');
       } catch (badgeError) {
+        console.error(`Badge award failed:`, badgeError.message);
+        // Không throw error cho badge để không làm thất bại việc complete plan
       }
 
       return { plan, badge };
@@ -423,6 +440,86 @@ class QuitPlanService {
       return plan
     } catch (error) {
       throw new Error('Failed to fail quit plan');
+    }
+  }
+  async cancelQuitPlan(userId, reason = null) {
+    try {
+      const plan = await QuitPlan.findOne({ userId, status: "ongoing" });
+      if (!plan) {
+        throw new Error('Không tìm thấy quit plan đang thực hiện');
+      }
+
+      const stages = await QuitPlanStage.find({ quitPlanId: plan._id }).sort({ order_index: 1 });
+      const completedStages = stages.filter(stage => stage.completed);
+      const progressCount = await QuitProgress.countDocuments({
+        userId,
+        stageId: { $in: stages.map(s => s._id) }
+      });
+
+      console.log(`Cancelling plan ${plan._id} for user ${userId}: ${completedStages.length}/${stages.length} stages completed, ${progressCount} progress entries`);
+
+      plan.status = "cancelled";
+
+      if (reason) {
+        plan.cancelReason = reason;
+        plan.cancelledAt = new Date();
+      }
+
+      await plan.save();
+
+      const populatedPlan = await QuitPlan.findById(plan._id)
+        .populate('coachId', 'userName email')
+        .populate('userId', 'userName email');
+
+      return {
+        cancelledPlan: populatedPlan,
+        progress: {
+          completedStages: completedStages.length,
+          totalStages: stages.length,
+          progressEntries: progressCount,
+          completionPercentage: stages.length > 0 ? Math.round((completedStages.length / stages.length) * 100) : 0
+        }
+      };
+    } catch (error) {
+      throw new Error(`Failed to cancel quit plan: ${error.message}`);
+    }
+  }
+  async canCancelQuitPlan(userId) {
+    try {
+      const plan = await QuitPlan.findOne({ userId, status: "ongoing" });
+
+      if (!plan) {
+        return {
+          canCancel: false,
+          reason: 'Không có quit plan nào đang thực hiện'
+        };
+      }
+
+      // Lấy thông tin tiến trình
+      const stages = await QuitPlanStage.find({ quitPlanId: plan._id }).sort({ order_index: 1 });
+      const completedStages = stages.filter(stage => stage.completed);
+      const progressCount = await QuitProgress.countDocuments({
+        userId,
+        stageId: { $in: stages.map(s => s._id) }
+      });
+
+      const completionPercentage = stages.length > 0 ? Math.round((completedStages.length / stages.length) * 100) : 0;
+
+      return {
+        canCancel: true,
+        reason: 'Có thể hủy quit plan',
+        planInfo: {
+          id: plan._id,
+          title: plan.title,
+          startDate: plan.startDate,
+          completedStages: completedStages.length,
+          totalStages: stages.length,
+          progressEntries: progressCount,
+          completionPercentage
+        }
+      };
+    } catch (error) {
+      throw new Error(`Failed to check cancel eligibility: ${error.message}`);
     }
   }
   async getTemplatePlans(coachId) {
@@ -463,7 +560,17 @@ class QuitPlanService {
         .sort({ awardedAt: -1 });
 
       const badges = userBadgesForPlan
-        .filter(ub => ub.badgeId && ub.badgeId.quitPlanId.toString() === planId.toString())
+        .filter(ub => {
+          if (!ub.badgeId) return false;
+
+          // Ưu tiên tìm badge theo templateId của plan trước (nếu có)
+          if (plan.templateId) {
+            return ub.badgeId.quitPlanId.toString() === plan.templateId.toString();
+          }
+
+          // Nếu không có templateId thì tìm theo planId
+          return ub.badgeId.quitPlanId.toString() === planId.toString();
+        })
         .map(ub => ({
           ...ub.badgeId.toObject(),
           userId: ub.userId,
@@ -510,7 +617,17 @@ class QuitPlanService {
             .sort({ awardedAt: -1 });
 
           const badges = userBadges
-            .filter(ub => ub.badgeId && ub.badgeId.quitPlanId.toString() === plan._id.toString())
+            .filter(ub => {
+              if (!ub.badgeId) return false;
+
+              // Ưu tiên tìm badge theo templateId trước (nếu có)
+              if (plan.templateId) {
+                return ub.badgeId.quitPlanId.toString() === plan.templateId.toString();
+              }
+
+              // Nếu không có templateId thì tìm theo plan._id
+              return ub.badgeId.quitPlanId.toString() === plan._id.toString();
+            })
             .map(ub => ub.badgeId);
 
           return {
@@ -531,6 +648,7 @@ class QuitPlanService {
         completedPlans: plans.filter(p => p.status === 'completed').length,
         ongoingPlans: plans.filter(p => p.status === 'ongoing').length,
         failedPlans: plans.filter(p => p.status === 'failed').length,
+        cancelledPlans: plans.filter(p => p.status === 'cancelled').length,
         templatePlans: plans.filter(p => p.status === 'template').length,
         totalBadges: planHistory.reduce((sum, plan) => sum + plan.badgeCount, 0)
       };
@@ -557,20 +675,31 @@ class QuitPlanService {
 
       if (stages.length === 0) return;
 
-      // Fix timing để stages chạy liên tiếp
-      let currentStartDate = new Date(plan.startDate);
+      // Fix timing theo ngày calendar
+      const startOfPlan = new Date(plan.startDate);
+      startOfPlan.setHours(0, 0, 0, 0);
+
+      let currentDayOffset = 0;
 
       for (let i = 0; i < stages.length; i++) {
         const stage = stages[i];
-        const stageEndDate = new Date(currentStartDate.getTime() + (stage.duration * 24 * 60 * 60 * 1000));
+
+        // Stage bắt đầu từ đầu ngày (0h00)
+        const stageStartDate = new Date(startOfPlan);
+        stageStartDate.setDate(startOfPlan.getDate() + currentDayOffset);
+
+        // Stage kết thúc vào cuối ngày (23h59:59.999)
+        const stageEndDate = new Date(stageStartDate);
+        stageEndDate.setDate(stageStartDate.getDate() + stage.duration - 1);
+        stageEndDate.setHours(23, 59, 59, 999);
 
         await QuitPlanStage.findByIdAndUpdate(stage._id, {
-          start_date: currentStartDate,
+          start_date: stageStartDate,
           end_date: stageEndDate
         });
 
-        // Stage tiếp theo bắt đầu ngay khi stage hiện tại kết thúc
-        currentStartDate = new Date(stageEndDate.getTime());
+        // Tăng offset cho stage tiếp theo
+        currentDayOffset += stage.duration;
       }
 
       console.log(`Fixed timing for plan ${planId} with ${stages.length} stages`);

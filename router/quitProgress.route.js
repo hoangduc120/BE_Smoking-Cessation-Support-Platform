@@ -18,4 +18,10 @@ router.post('/check-failed-plans', authMiddleware, restrictTo('admin'), quitProg
 
 router.get('/debug-stage/:stageId', authMiddleware, restrictTo('user'), quitProgressController.debugStageCompletion)
 
+router.post('/test-expired-stages', authMiddleware, restrictTo('admin'), quitProgressController.testExpiredStagesCheck)
+
+router.get('/debug-plan/:planId', authMiddleware, restrictTo('user'), quitProgressController.debugPlanStatus)
+
+router.get('/can-complete-stage/:stageId', authMiddleware, restrictTo('user'), quitProgressController.canCompleteStageManually)
+
 module.exports = router;
