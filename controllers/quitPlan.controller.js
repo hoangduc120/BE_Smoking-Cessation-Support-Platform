@@ -257,6 +257,30 @@ class QuitPlanController {
       return BAD_REQUEST(res, error.message);
     }
   }
+
+  async cancelQuitPlan(req, res) {
+    try {
+      const userId = req.user._id;
+      const { reason } = req.body; // Optional reason for cancellation
+
+      const result = await quitPlanService.cancelQuitPlan(userId, reason);
+
+      return OK(res, 'Quit plan cancelled successfully', result);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
+
+  async canCancelQuitPlan(req, res) {
+    try {
+      const userId = req.user._id;
+      const result = await quitPlanService.canCancelQuitPlan(userId);
+
+      return OK(res, 'Cancel eligibility checked successfully', result);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
 }
 
 module.exports = new QuitPlanController();

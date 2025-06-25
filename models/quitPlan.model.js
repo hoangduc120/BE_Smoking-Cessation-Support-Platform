@@ -45,8 +45,16 @@ var quitplanSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["template", "pending", "ongoing", "completed", "failed"],
+    enum: ["template", "pending", "ongoing", "completed", "failed", "cancelled"],
     default: "template",
+  },
+  cancelReason: {
+    type: String,
+    default: null,
+  },
+  cancelledAt: {
+    type: Date,
+    default: null,
   }
 }, { timestamps: true });
 

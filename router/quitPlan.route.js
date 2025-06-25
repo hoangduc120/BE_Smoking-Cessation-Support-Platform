@@ -5,6 +5,8 @@ const { authMiddleware, restrictTo } = require('../middlewares/authMiddleware');
 
 // Routes cụ thể phải đặt trước routes có parameter
 router.post('/quitplans/select', authMiddleware, restrictTo('user'), quitPlanController.selectQuitPlan);
+router.post('/quitplans/cancel', authMiddleware, restrictTo('user'), quitPlanController.cancelQuitPlan);
+router.get('/quitplans/can-cancel', authMiddleware, restrictTo('user'), quitPlanController.canCancelQuitPlan);
 router.get('/quitplans/current', authMiddleware, restrictTo('user'), quitPlanController.getUserCurrentPlan);
 router.get('/quitplans/template', authMiddleware, restrictTo('coach'), quitPlanController.getTemplatePlans);
 router.get('/quitplans/history', authMiddleware, restrictTo('user'), quitPlanController.getAllUserPlanHistory);
