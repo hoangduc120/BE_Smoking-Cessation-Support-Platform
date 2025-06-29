@@ -91,16 +91,11 @@ class QuitProgressService {
 
             const completionPercentage = (checkInCount / totalDays) * 100;
 
-            console.log(`Stage ${stageId} check-in progress: ${checkInCount}/${totalDays} days (${completionPercentage.toFixed(1)}%)`);
-
             if (completionPercentage >= 75) {
-                console.log(`Stage ${stageId} completed - ${completionPercentage.toFixed(1)}% check-in rate`);
                 await quitPlanService.completeStage(stageId, userId);
             } else {
-                console.log(`Stage ${stageId} in progress - ${completionPercentage.toFixed(1)}% check-in rate`);
             }
         } catch (error) {
-            console.error('Error in checkAndCompleteStage:', error);
         }
     }
 
@@ -112,7 +107,6 @@ class QuitProgressService {
                 await this.checkPlanForFailure(plan._id, plan.userId);
             }
         } catch (error) {
-            console.error('Error checking failed plans:', error);
         }
     }
 
@@ -141,7 +135,6 @@ class QuitProgressService {
 
             return false;
         } catch (error) {
-            console.error('Error checking plan for failure:', error);
             return false;
         }
     }
@@ -208,17 +201,12 @@ class QuitProgressService {
             const completedStages = stages.filter(stage => stage.completed);
             const incompleteStages = stages.filter(stage => !stage.completed);
 
-            console.log(`Plan ${quitPlanId}: ${completedStages.length}/${stages.length} stages completed`);
-
             if (incompleteStages.length === 0 && stages.length > 0) {
-                console.log(`All stages completed for plan ${quitPlanId}. Completing plan...`);
                 await quitPlanService.completePlan(quitPlanId, userId);
             } else if (incompleteStages.length > 0) {
                 const nextStage = incompleteStages[0];
-                console.log(`Next stage for plan ${quitPlanId}: Stage ${nextStage.order_index} - ${nextStage.stage_name}`);
             }
         } catch (error) {
-            console.error('Error in moveToNextStage:', error);
         }
     }
 
@@ -240,7 +228,6 @@ class QuitProgressService {
                 }
             }
         } catch (error) {
-            console.error('Error in checkAndAutoCompleteStages:', error);
         }
     }
 
@@ -275,7 +262,6 @@ class QuitProgressService {
 
                     if (!todayProgress && plan.userId.email) {
                         await this.sendReminderEmail(plan.userId, currentStage);
-                        console.log(`Sent reminder email to ${plan.userId.email}`);
                     }
                 } catch (error) {
                     console.error(`Error processing plan ${plan._id}:`, error);
@@ -308,7 +294,7 @@ class QuitProgressService {
                         </div>
 
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/progress" 
+                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/progress" 
                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                                       color: white; 
                                       padding: 15px 30px; 

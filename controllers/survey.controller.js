@@ -30,7 +30,6 @@ class SurveyController {
             const survey = await surveyService.getSurveyById(surveyId);
             return OK(res, "Survey fetched successfully", survey);
         } catch (error) {
-            console.error(`Error in getSurveyById controller: ${error.message}`);
             return BAD_REQUEST(res, error.message);
         }
     }

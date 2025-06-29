@@ -201,7 +201,6 @@ class QuitPlanService {
       await badge.save();
       return badge;
     } catch (error) {
-      console.error('Award badge error:', error);
       throw new Error(`Failed to award badge to quit plan: ${error.message}`);
     }
   }

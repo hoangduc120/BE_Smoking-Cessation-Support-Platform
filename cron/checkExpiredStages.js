@@ -10,12 +10,10 @@ class ExpiredStagesChecker {
 
     async checkExpiredStages() {
         if (this.isRunning) {
-            console.log('Expired stages check is already running, skipping...');
             return;
         }
 
         this.isRunning = true;
-        console.log('🔍 Starting expired stages check...', new Date().toISOString());
 
         try {
             // Lấy tất cả plans đang ongoing
@@ -39,7 +37,6 @@ class ExpiredStagesChecker {
 
                         // Kiểm tra nếu stage đã hết hạn
                         if (currentDate >= stageEndDate) {
-                            console.log(`⏰ Found expired stage: ${stage.stage_name} for user ${plan.userId}`);
 
                             // Gọi checkAndCompleteStage
                             await quitProgressService.checkAndCompleteStage(stage._id, plan.userId);
@@ -49,18 +46,10 @@ class ExpiredStagesChecker {
 
                     processedCount++;
                 } catch (error) {
-                    console.error(`❌ Error processing plan ${plan._id}:`, error.message);
                 }
             }
 
-            console.log(`✅ Expired stages check completed:`, {
-                plansProcessed: processedCount,
-                stagesCompleted: completedStagesCount,
-                timestamp: new Date().toISOString()
-            });
-
         } catch (error) {
-            console.error('❌ Error in expired stages check:', error);
         } finally {
             this.isRunning = false;
         }
@@ -69,13 +58,11 @@ class ExpiredStagesChecker {
     startScheduler() {
         // Chạy mỗi ngày lúc 00:01 để kiểm tra stages của ngày hôm trước
         cron.schedule('1 0 * * *', () => {
-            console.log('🌅 Daily expired stages check at midnight...');
             this.checkExpiredStages();
         });
 
         // Backup check lúc 00:30 để đảm bảo không miss
         cron.schedule('30 0 * * *', () => {
-            console.log('🔄 Backup expired stages check...');
             this.checkExpiredStages();
         });
     }

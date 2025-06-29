@@ -51,7 +51,6 @@ class QuitPlanController {
       const { quitPlan } = await quitPlanService.getQuitPlanById(req.params.id)
       return OK(res, 'Quit plan fetched successfully', { quitPlan });
     } catch (error) {
-      console.log(error);
       return BAD_REQUEST(res, error.message);
     }
   }
@@ -174,7 +173,6 @@ class QuitPlanController {
       }
       return OK(res, 'User current plan fetched successfully', data);
     } catch (error) {
-      console.error('Controller error:', error);
       return BAD_REQUEST(res, error.message || 'Failed to fetch plan');
     }
   }
