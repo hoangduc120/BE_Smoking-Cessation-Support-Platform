@@ -281,6 +281,65 @@ class QuitPlanController {
       return BAD_REQUEST(res, error.message);
     }
   }
+  async createCustomQuitPlan(req, res) {
+    try {
+      if (!req.user) {
+        return BAD_REQUEST(res, 'User authentication required');
+      }
+      const userId = req.user._id;
+      if(req.user.role !== 'user') {
+        return BAD_REQUEST(res, 'Only users can create custom quit plans');
+      }
+      const requestData = {
+        ...req.body,
+        userId,
+        status: 'pending'
+      }
+      const request = await quitPlanService.createCustomQuitPlan(requestData)
+      return OK(res, 'Custom quit plan request created successfully', request);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
+  async getCustomQuitPlan(req, res) {
+    try {
+      const { userId, coachId, status } = req.query;
+      if (req.user.role !== 'coach' && userId && userId !== req.user._id.toString()) {
+        return BAD_REQUEST(res, 'Only coaches can get custom quit plans');
+      }
+      const requests = await quitPlanService.getCustomQuitPlan(userId, coachId, status)
+      return OK(res, 'Custom quit plan requests fetched successfully', requests);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
+  async approveCustomQuitPlanRequest(req, res) {
+    try {
+      if (!req.user || req.user.role !== "coach") {
+        return BAD_REQUEST(res, 'User authentication and coach role required');
+      }
+      const { requestId } = req.params;
+      const { quitPlanData, stagesData } = req.body;
+
+      const result = await quitPlanService.approveCustomQuitPlanRequest(requestId, req.user._id, quitPlanData, stagesData)
+      return OK(res, 'Custom quit plan request approved successfully', result);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
+  async rejectCustomQuitPlanRequest(req, res) {
+    try {
+      if (!req.user || req.user.role !== "coach") {
+        return BAD_REQUEST(res, 'User authentication and coach role required');
+      }
+      const { requestId } = req.params;
+      const { reason } = req.body;
+      const result = await quitPlanService.rejectCustomQuitPlanRequest(requestId, req.user._id, reason)
+      return OK(res, 'Custom quit plan request rejected successfully', result);
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
 }
 
 module.exports = new QuitPlanController();
