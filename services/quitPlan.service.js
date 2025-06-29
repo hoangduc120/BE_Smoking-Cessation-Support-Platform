@@ -3,6 +3,7 @@ const QuitPlanStage = require("../models/quitPlanStage.model");
 const Badge = require('../models/badge.model');
 const QuitProgress = require('../models/quitProgress.model');
 const mongoose = require('mongoose');
+const CustomQuitPlan = require('../models/customQuitPlan.model');
 
 
 class QuitPlanService {
@@ -737,6 +738,104 @@ class QuitPlanService {
     } catch (error) {
       console.error('Error checking expired stages:', error);
       throw error;
+    }
+  }
+  async createCustomQuitPlan(data) {
+    try {
+      const existingPlan = await QuitPlan.findOne({ userId: data.userId, status: "ongoing" })
+      if (existingPlan) {
+        throw new Error('User already has an ongoing quit plan');
+      }
+      const request = new CustomQuitPlan(data)
+      await request.save()
+      return request
+    } catch (error) {
+      throw new Error(`Failed to create custom quit plan: ${error.message}`);
+    }
+  }
+  async getCustomQuitPlan(userId, coachId, status) {
+    try {
+      const query = {}
+      if (userId) query.userId = userId
+      if (coachId) query.coachId = coachId
+      if (status) query.status = status
+      const requests = await CustomQuitPlan.find(query)
+        .populate('userId', 'userName email')
+        .populate('coachId', 'userName email')
+        .sort({ createdAt: -1 })
+      return requests
+    } catch (error) {
+      throw new Error(`Failed to get custom quit plan: ${error.message}`);
+    }
+  }
+  async approveCustomQuitPlanRequest(requestId, coachId, quitPlanData, stagesData) {
+    try {
+      const request = await CustomQuitPlan.findById(requestId)
+      if (!request) {
+        throw new Error('Request not found');
+      }
+      // Check if request is already assigned to another coach
+      if (request.coachId && request.coachId.toString() !== coachId.toString()) {
+        throw new Error('This request is already assigned to another coach');
+      }
+      if (request.status !== 'pending') {
+        throw new Error('Request is not pending');
+      }
+
+      // Check if user already has an ongoing plan
+      const existingPlan = await QuitPlan.findOne({ userId: request.userId, status: "ongoing" });
+      if (existingPlan) {
+        throw new Error('User already has an ongoing quit plan');
+      }
+
+      const quitPlan = new QuitPlan(
+        {
+          ...quitPlanData,
+          userId: request.userId,
+          coachId,
+          templateId: null,
+          status: 'ongoing'
+        })
+      await quitPlan.save()
+
+      if (stagesData && stagesData.length > 0) {
+        const stages = stagesData.map(stage => ({
+          ...stage,
+          quitPlanId: quitPlan._id
+        }))
+        await QuitPlanStage.insertMany(stages)
+      }
+      request.status = 'approved'
+      request.coachId = coachId
+      request.quitPlanId = quitPlan._id
+      request.approvedAt = new Date()
+      await request.save()
+      return { request, quitPlan }
+    } catch (error) {
+      throw new Error(`Failed to approve custom quit plan request: ${error.message}`);
+    }
+  }
+  async rejectCustomQuitPlanRequest(requestId, coachId, reason) {
+    try {
+      const request = await CustomQuitPlan.findById(requestId)
+      if (!request) {
+        throw new Error('Request not found');
+      }
+      // Check if request is already assigned to another coach
+      if (request.coachId && request.coachId.toString() !== coachId.toString()) {
+        throw new Error('This request is already assigned to another coach');
+      }
+      if (request.status !== 'pending') {
+        throw new Error('Request is not pending');
+      }
+      request.status = 'rejected'
+      request.coachId = coachId
+      request.rejectionReason = reason
+      request.rejectedAt = new Date()
+      await request.save()
+      return request
+    } catch (error) {
+      throw new Error(`Failed to reject custom quit plan request: ${error.message}`);
     }
   }
 }

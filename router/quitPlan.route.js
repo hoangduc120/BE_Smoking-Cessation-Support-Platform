@@ -12,6 +12,12 @@ router.get('/quitplans/template', authMiddleware, restrictTo('coach'), quitPlanC
 router.get('/quitplans/history', authMiddleware, restrictTo('user'), quitPlanController.getAllUserPlanHistory);
 router.get('/quitplans/:planId/completion', authMiddleware, quitPlanController.getCompleteByPlanId);
 
+
+router.post("/quitplans/custom", authMiddleware, restrictTo('user'), quitPlanController.createCustomQuitPlan);
+router.get("/quitplans/custom", authMiddleware, restrictTo('coach'), quitPlanController.getCustomQuitPlan);
+router.post("/quitplans/custom/:requestId/approve", authMiddleware, restrictTo('coach'), quitPlanController.approveCustomQuitPlanRequest);
+router.post("/quitplans/custom/:requestId/reject", authMiddleware, restrictTo('coach'), quitPlanController.rejectCustomQuitPlanRequest);
+
 // Routes chung
 router.post('/quitplans', authMiddleware, restrictTo('coach'), quitPlanController.createQuitPlan);
 router.get('/quitplans', authMiddleware, quitPlanController.getQuitPlans);

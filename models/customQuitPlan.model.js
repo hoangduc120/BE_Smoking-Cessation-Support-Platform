@@ -17,6 +17,10 @@ var customQuitPlanSchema = new mongoose.Schema({
         required: true,
         trim: true,
     },
+    description: {
+        type: String,
+        trim: true,
+    },
     rules: [{
         rule: {
             type: String,
@@ -41,6 +45,16 @@ var customQuitPlanSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'QuitPlan',
         default: null,
+    },
+    rejectionReason: {
+        type: String,
+        trim: true,
+    },
+    approvedAt: {
+        type: Date,
+    },
+    rejectedAt: {
+        type: Date,
     }
 }, { timestamps: true });
 
