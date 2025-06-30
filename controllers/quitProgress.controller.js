@@ -20,9 +20,15 @@ class QuitProgressController {
 
     async getQuitProgressById(req, res) {
         try {
-            const { userId, stageId, date } = req.query
-            const quitProgress = await quitProgressService.getQuitProgressById(userId, stageId, date)
-            res.json(quitProgress)
+            const { userId, stageId, date, page = 1, limit = 10 } = req.query
+
+            const filters = {};
+            if (userId) filters.userId = userId;
+            if (stageId) filters.stageId = stageId;
+            if (date) filters.date = date;
+
+            const result = await quitProgressService.getQuitProgressList(filters, page, limit)
+            res.json(result)
         } catch (error) {
             res.status(500).json({ message: error.message })
         }
@@ -301,6 +307,24 @@ class QuitProgressController {
             const result = await quitProgressService.canCompleteStageManually(stageId, userId)
             res.json({
                 message: "Stage completion eligibility checked successfully",
+                data: result
+            })
+        } catch (error) {
+            res.status(500).json({ message: error.message })
+        }
+    }
+
+    async getQuitProgressByStage(req, res) {
+        try {
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" })
+            }
+            const userId = req.user._id
+            const { stageId } = req.params
+
+            const result = await quitProgressService.getQuitProgressByStage(stageId, userId)
+            res.json({
+                message: "Stage progress retrieved successfully",
                 data: result
             })
         } catch (error) {

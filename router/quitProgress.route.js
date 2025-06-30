@@ -24,4 +24,6 @@ router.get('/debug-plan/:planId', authMiddleware, restrictTo('user'), quitProgre
 
 router.get('/can-complete-stage/:stageId', authMiddleware, restrictTo('user'), quitProgressController.canCompleteStageManually)
 
+router.get('/by-stage/:stageId', authMiddleware, restrictTo('user'), quitProgressController.getQuitProgressByStage)
+
 module.exports = router;

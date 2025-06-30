@@ -4179,117 +4179,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-    get:
-      tags:
-        - QuitProgress
-      summary: Get quit progress records
-      description: Retrieves a list of quit progress records filtered by userId, stageId, or date with pagination (requires user role).
-      operationId: getQuitProgresses
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: userId
-          in: query
-          description: Filter by user ID
-          schema:
-            type: string
-            example: '54321'
-        - name: stageId
-          in: query
-          description: Filter by stage ID
-          schema:
-            type: string
-            example: 'stage-12345'
-        - name: date
-          in: query
-          description: Filter by date (format YYYY-MM-DD)
-          schema:
-            type: string
-            format: date
-            example: '2025-06-02'
-        - name: page
-          in: query
-          description: Page number for pagination
-          schema:
-            type: integer
-            minimum: 1
-            example: 1
-        - name: limit
-          in: query
-          description: Number of quit progress records per page
-          schema:
-            type: integer
-            minimum: 1
-            example: 10
-      responses:
-        '200':
-          description: List of quit progress records with pagination metadata
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  progresses:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/QuitProgress'
-                  total:
-                    type: integer
-                    example: 20
-                  page:
-                    type: integer
-                    example: 1
-                  limit:
-                    type: integer
-                    example: 10
-        '401':
-          description: Unauthorized - Invalid or missing authentication token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '400':
-          description: Invalid query parameters (e.g., invalid userId or stageId)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /quitprogress/{id}:
-    get:
-      tags:
-        - QuitProgress
-      summary: Get quit progress by ID
-      description: Retrieves a quit progress record by its ID (requires user role).
-      operationId: getQuitProgress
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID of the quit progress record
-          schema:
-            type: string
-            example: 'progress-12345'
-      responses:
-        '200':
-          description: Quit progress details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuitProgress'
-        '401':
-          description: Unauthorized - Invalid or missing authentication token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Quit progress not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
     put:
       tags:
         - QuitProgress
@@ -4556,6 +4445,48 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /quitprogress/by-stage/{stageId}:
+    get:
+      tags:
+        - QuitProgress
+      summary: Get all quit progress records for a specific stage
+      description: Retrieves all quit progress records for a specific stage belonging to the authenticated user, including detailed statistics about stage completion progress.
+      operationId: getQuitProgressByStage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: stageId
+          in: path
+          required: true
+          description: ID of the stage to get progress records for
+          schema:
+            type: string
+            example: 'stage-12345'
+      responses:
+        '200':
+          description: Stage progress records retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StageProgressByStageResponse'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stage not found
           content:
             application/json:
               schema:
@@ -6108,6 +6039,131 @@ components:
         - daysRequiredForCompletion
         - daysUntilCanComplete
         - progressEntries
+    StageProgressByStageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'Stage progress retrieved successfully'
+        data:
+          $ref: '#/components/schemas/StageProgressData'
+      required:
+        - message
+        - data
+    StageProgressData:
+      type: object
+      properties:
+        stage:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 'stage-12345'
+            stage_name:
+              type: string
+              example: 'Giai đoạn 1: Giảm dần'
+            description:
+              type: string
+              example: 'Giảm từ 20 xuống 15 điếu/ngày'
+            duration:
+              type: integer
+              example: 10
+            completed:
+              type: boolean
+              example: false
+          required:
+            - _id
+            - stage_name
+            - duration
+            - completed
+        progresses:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                example: 'progress-12345'
+              userId:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: 'user-123'
+                  userName:
+                    type: string
+                    example: 'Nguyễn Văn A'
+                  email:
+                    type: string
+                    format: email
+                    example: 'user@example.com'
+              stageId:
+                type: string
+                example: 'stage-12345'
+              date:
+                type: string
+                format: date-time
+                example: '2025-01-15T00:00:00.000Z'
+              cigarettesSmoked:
+                type: integer
+                minimum: 0
+                example: 3
+              healthStatus:
+                type: string
+                example: 'Cảm thấy tốt hơn'
+              notes:
+                type: string
+                example: 'Ngày khó khăn nhưng đã vượt qua'
+              createdAt:
+                type: string
+                format: date-time
+                example: '2025-01-15T08:30:00.000Z'
+              updatedAt:
+                type: string
+                format: date-time
+                example: '2025-01-15T08:30:00.000Z'
+          description: List of all progress entries for this stage, sorted by date ascending
+        statistics:
+          $ref: '#/components/schemas/ProgressStatistics'
+      required:
+        - stage
+        - progresses
+        - statistics
+    ProgressStatistics:
+      type: object
+      properties:
+        totalDays:
+          type: integer
+          example: 10
+          description: Total number of days required for this stage
+        checkInCount:
+          type: integer
+          example: 8
+          description: Number of days user has logged progress
+        completionPercentage:
+          type: number
+          format: float
+          example: 80.0
+          description: Percentage of completion (0-100)
+        remainingCheckIns:
+          type: integer
+          example: 2
+          description: Number of check-ins still needed to complete all days
+        canComplete:
+          type: boolean
+          example: true
+          description: Whether the stage has >= 75% progress (completion threshold)
+        checkInsNeeded:
+          type: integer
+          example: 0
+          description: Number of additional check-ins needed to reach 75% completion threshold
+      required:
+        - totalDays
+        - checkInCount
+        - completionPercentage
+        - remainingCheckIns
+        - canComplete
+        - checkInsNeeded
     PlanDurationStats:
       type: object
       properties:
