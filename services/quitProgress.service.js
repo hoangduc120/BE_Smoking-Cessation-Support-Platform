@@ -369,6 +369,87 @@ class QuitProgressService {
             throw new Error(`Error checking stage completion eligibility: ${error.message}`);
         }
     }
+
+    async getQuitProgressList(filters = {}, page = 1, limit = 10) {
+        const query = {};
+
+        if (filters.userId) {
+            query.userId = filters.userId;
+        }
+
+        if (filters.stageId) {
+            query.stageId = filters.stageId;
+        }
+
+        if (filters.date) {
+            const startDate = new Date(filters.date);
+            startDate.setHours(0, 0, 0, 0);
+            const endDate = new Date(filters.date);
+            endDate.setHours(23, 59, 59, 999);
+
+            query.date = {
+                $gte: startDate,
+                $lte: endDate
+            };
+        }
+
+        const skip = (page - 1) * limit;
+
+        const progresses = await QuitProgress.find(query)
+            .populate('userId', 'userName email')
+            .populate('stageId', 'stage_name description duration')
+            .sort({ date: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const total = await QuitProgress.countDocuments(query);
+
+        return {
+            progresses,
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(total / limit)
+        };
+    }
+
+    async getQuitProgressByStage(stageId, userId) {
+        const progresses = await QuitProgress.find({
+            stageId,
+            userId
+        })
+            .populate('userId', 'userName email')
+            .populate('stageId', 'stage_name description duration')
+            .sort({ date: 1 }); // Sắp xếp theo ngày tăng dần
+
+        const stage = await QuitPlanStage.findById(stageId);
+        if (!stage) {
+            throw new Error("Stage not found");
+        }
+
+        const totalDays = stage.duration;
+        const checkInCount = progresses.length;
+        const completionPercentage = (checkInCount / totalDays) * 100;
+
+        return {
+            stage: {
+                _id: stage._id,
+                stage_name: stage.stage_name,
+                description: stage.description,
+                duration: stage.duration,
+                completed: stage.completed
+            },
+            progresses,
+            statistics: {
+                totalDays,
+                checkInCount,
+                completionPercentage: Math.round(completionPercentage * 10) / 10,
+                remainingCheckIns: Math.max(0, totalDays - checkInCount),
+                canComplete: completionPercentage >= 75,
+                checkInsNeeded: Math.max(0, Math.ceil(totalDays * 0.75) - checkInCount)
+            }
+        };
+    }
 }
 
 module.exports = new QuitProgressService()
