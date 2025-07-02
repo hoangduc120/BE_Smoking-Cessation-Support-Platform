@@ -10,4 +10,8 @@ router.get("/:id", memberShipPlanController.getPackageById);
 router.put("/:id", authMiddleware, restrictTo("admin"), memberShipPlanController.updatePackage);
 router.delete("/:id", authMiddleware, restrictTo("admin"), memberShipPlanController.deletePackage);
 
+// Special routes for package management
+router.put("/update-all/required-fields", authMiddleware, restrictTo("admin"), memberShipPlanController.updateAllPackagesWithRequiredFields);
+router.post("/initialize-default", authMiddleware, restrictTo("admin"), memberShipPlanController.initializeDefaultPackages);
+
 module.exports = router; 

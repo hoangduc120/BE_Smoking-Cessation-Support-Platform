@@ -1563,7 +1563,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserMembership'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Đăng ký gói thành viên thành công. Vui lòng tiến hành thanh toán.'
+                  data:
+                    $ref: '#/components/schemas/UserMembership'
         '401':
           description: Unauthorized - Invalid or missing authentication token
           content:
@@ -1577,7 +1586,119 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '400':
-          description: Invalid request data (e.g., invalid packageId or userId)
+          description: Invalid request data (e.g., Gói Base là miễn phí, invalid packageId)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /memberships/activate/{membershipId}:
+    put:
+      tags:
+        - UserMembership
+      summary: Activate membership after payment
+      description: Activates a membership plan after successful payment (requires authentication).
+      operationId: activatePackage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: membershipId
+          in: path
+          required: true
+          description: ID of the membership to activate
+          schema:
+            type: string
+            example: 'membership-12345'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentInfo:
+                  type: object
+                  properties:
+                    orderId:
+                      type: string
+                      example: 'order-123'
+                    transactionId:
+                      type: string
+                      example: 'trans-456'
+                    amount:
+                      type: number
+                      example: 99000
+                    bankCode:
+                      type: string
+                      example: 'NCB'
+        required: false
+      responses:
+        '200':
+          description: Membership activated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Kích hoạt gói thành viên thành công'
+                  data:
+                    $ref: '#/components/schemas/UserMembership'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad request - Membership not found or already activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /memberships/details/{userId}:
+    get:
+      tags:
+        - UserMembership
+      summary: Get detailed membership information
+      description: Retrieves detailed membership information for a specific user including current plan, features, limitations and status (requires authentication).
+      operationId: getUserMembershipDetails
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID of the user
+          schema:
+            type: string
+            example: '12345'
+      responses:
+        '200':
+          description: Detailed membership information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Lấy thông tin gói thành viên thành công'
+                  data:
+                    $ref: '#/components/schemas/MembershipDetails'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
           content:
             application/json:
               schema:
@@ -4975,21 +5096,53 @@ components:
           example: 'plan-001'
         name:
           type: string
-          example: 'Premium Plan'
+          enum: ['Base', 'Pro', 'Premium']
+          example: 'Premium'
         description:
           type: string
-          example: 'Access to premium features'
+          example: 'Gói cao cấp với tất cả tính năng bao gồm custom quit plan'
         price:
           type: number
-          example: 29.99
+          example: 199000
+          description: 'Giá tiền (VND)'
         duration:
           type: integer
           example: 30
+          description: 'Thời hạn (ngày)'
+        level:
+          type: integer
+          example: 3
+          description: 'Mức độ gói (1: Base, 2: Pro, 3: Premium)'
         features:
           type: array
           items:
             type: string
-          example: ['feature1', 'feature2']
+            enum:
+              - basic_features
+              - unlimited_blog_posts
+              - advanced_quit_plans
+              - priority_support
+              - custom_quit_plan
+              - analytics_dashboard
+              - coach_interaction
+              - community_access
+          example: ['basic_features', 'unlimited_blog_posts', 'custom_quit_plan']
+        limitations:
+          type: object
+          properties:
+            blogPostsPerDay:
+              type: integer
+              nullable: true
+              example: null
+              description: 'Giới hạn bài blog mỗi ngày (null = không giới hạn)'
+            maxActiveQuitPlans:
+              type: integer
+              example: 5
+              description: 'Số kế hoạch cai thuốc tối đa'
+            customQuitPlanAccess:
+              type: boolean
+              example: true
+              description: 'Quyền truy cập Custom Quit Plan'
         isActive:
           type: boolean
           example: true
@@ -5006,50 +5159,120 @@ components:
         - name
         - price
         - duration
+        - level
+        - features
+        - limitations
     MembershipPlanCreateRequest:
       type: object
       properties:
         name:
           type: string
-          example: 'Premium Plan'
+          enum: ['Base', 'Pro', 'Premium']
+          example: 'Premium'
         description:
           type: string
-          example: 'Access to premium features'
+          example: 'Gói cao cấp với tất cả tính năng bao gồm custom quit plan'
         price:
           type: number
-          example: 29.99
+          example: 199000
+          description: 'Giá tiền (VND)'
         duration:
           type: integer
           example: 30
+          description: 'Thời hạn (ngày)'
+        level:
+          type: integer
+          example: 3
+          description: 'Mức độ gói (1: Base, 2: Pro, 3: Premium)'
         features:
           type: array
           items:
             type: string
-          example: ['feature1', 'feature2']
+            enum:
+              - basic_features
+              - unlimited_blog_posts
+              - advanced_quit_plans
+              - priority_support
+              - custom_quit_plan
+              - analytics_dashboard
+              - coach_interaction
+              - community_access
+          example: ['basic_features', 'unlimited_blog_posts', 'custom_quit_plan']
+        limitations:
+          type: object
+          properties:
+            blogPostsPerDay:
+              type: integer
+              nullable: true
+              example: null
+              description: 'Giới hạn bài blog mỗi ngày (null = không giới hạn)'
+            maxActiveQuitPlans:
+              type: integer
+              example: 5
+              description: 'Số kế hoạch cai thuốc tối đa'
+            customQuitPlanAccess:
+              type: boolean
+              example: true
+              description: 'Quyền truy cập Custom Quit Plan'
       required:
         - name
         - price
         - duration
+        - level
+        - features
+        - limitations
     MembershipPlanUpdateRequest:
       type: object
       properties:
         name:
           type: string
-          example: 'Updated Premium Plan'
+          enum: ['Base', 'Pro', 'Premium']
+          example: 'Premium'
         description:
           type: string
-          example: 'Updated description'
+          example: 'Gói cao cấp cập nhật với tất cả tính năng'
         price:
           type: number
-          example: 39.99
+          example: 299000
+          description: 'Giá tiền cập nhật (VND)'
         duration:
           type: integer
           example: 30
+          description: 'Thời hạn (ngày)'
+        level:
+          type: integer
+          example: 3
+          description: 'Mức độ gói (1: Base, 2: Pro, 3: Premium)'
         features:
           type: array
           items:
             type: string
-          example: ['feature1', 'feature2', 'feature3']
+            enum:
+              - basic_features
+              - unlimited_blog_posts
+              - advanced_quit_plans
+              - priority_support
+              - custom_quit_plan
+              - analytics_dashboard
+              - coach_interaction
+              - community_access
+          example: ['basic_features', 'unlimited_blog_posts', 'custom_quit_plan']
+        limitations:
+          type: object
+          properties:
+            blogPostsPerDay:
+              type: integer
+              nullable: true
+              example: null
+              description: 'Giới hạn bài blog mỗi ngày (null = không giới hạn)'
+            maxActiveQuitPlans:
+              type: integer
+              example: 5
+              description: 'Số kế hoạch cai thuốc tối đa'
+            customQuitPlanAccess:
+              type: boolean
+              example: true
+              description: 'Quyền truy cập Custom Quit Plan'
     UserMembership:
       type: object
       properties:
@@ -5072,7 +5295,7 @@ components:
           example: '2025-01-31T23:59:59.999Z'
         paymentStatus:
           type: string
-          enum: ['pending', 'paid', 'failed']
+          enum: ['pending', 'paid', 'failed', 'expired']
           example: 'paid'
         price:
           type: number
@@ -5118,6 +5341,10 @@ components:
     UserMembershipRegisterRequest:
       type: object
       properties:
+        userId:
+          type: string
+          example: '12345'
+          description: ID of the user registering for the plan
         packageId:
           type: string
           example: 'plan-001'
@@ -5128,6 +5355,7 @@ components:
           example: 'month'
           description: Duration type for the membership
       required:
+        - userId
         - packageId
         - durationType
     MembershipStatus:
@@ -5215,6 +5443,80 @@ components:
         - price
         - duration
         - isRecommended
+    MembershipDetails:
+      type: object
+      properties:
+        hasActiveMembership:
+          type: boolean
+          example: true
+          description: Có gói thành viên đang hoạt động hay không
+        currentPlan:
+          $ref: '#/components/schemas/MembershipPlan'
+          description: Gói thành viên hiện tại
+        features:
+          type: array
+          items:
+            type: string
+          example: ['basic_features', 'unlimited_blog_posts', 'custom_quit_plan']
+          description: Các tính năng có sẵn
+        limitations:
+          type: object
+          properties:
+            blogPostsPerDay:
+              type: integer
+              nullable: true
+              example: null
+            maxActiveQuitPlans:
+              type: integer
+              example: 5
+            customQuitPlanAccess:
+              type: boolean
+              example: true
+          description: Các giới hạn của gói hiện tại
+        daysLeft:
+          type: integer
+          example: 15
+          description: Số ngày còn lại của gói
+        isExpiringSoon:
+          type: boolean
+          example: false
+          description: Gói sắp hết hạn trong 7 ngày
+        endDate:
+          type: string
+          format: date-time
+          example: '2025-02-01T23:59:59.999Z'
+          nullable: true
+          description: Ngày hết hạn gói
+        canUpgrade:
+          type: boolean
+          example: true
+          description: Có thể nâng cấp gói hay không
+        membershipId:
+          type: string
+          example: 'membership-12345'
+          nullable: true
+          description: ID của membership record
+        startDate:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00.000Z'
+          nullable: true
+          description: Ngày bắt đầu gói
+        price:
+          type: number
+          example: 199000
+          nullable: true
+          description: Giá tiền đã trả
+      required:
+        - hasActiveMembership
+        - currentPlan
+        - features
+        - limitations
+        - daysLeft
+        - isExpiringSoon
+        - endDate
+        - canUpgrade
+        - membershipId
     PaymentCreateRequest:
       type: object
       properties:

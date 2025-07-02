@@ -61,5 +61,37 @@ class MemberShipPlanController {
             res.status(500).json({ message: error.message })
         }
     }
+    async updateAllPackagesWithRequiredFields(req, res) {
+        try {
+            const updatedPackages = await MemberShipPlanService.updateExistingPackagesWithRequiredFields();
+
+            res.status(200).json({
+                success: true,
+                message: 'Cập nhật các gói thành viên thành công',
+                data: updatedPackages
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+    async initializeDefaultPackages(req, res) {
+        try {
+            const packages = await MemberShipPlanService.initializeDefaultPackages();
+
+            res.status(200).json({
+                success: true,
+                message: 'Khởi tạo các gói thành viên mặc định thành công',
+                data: packages
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
 }
 module.exports = new MemberShipPlanController()
