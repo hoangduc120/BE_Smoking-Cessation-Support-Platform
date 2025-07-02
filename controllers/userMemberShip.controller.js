@@ -6,13 +6,79 @@ class UserMemberShipController {
             const userMemberShip = await UserMemberShipService.registerPackage(req.body)
             res.status(201).json({
                 success: true,
-                message: 'Package registered successfully',
+                message: 'Đăng ký gói thành viên thành công. Vui lòng tiến hành thanh toán.',
                 data: userMemberShip
             })
         } catch (error) {
-            res.status(500).json({ message: error.message })
+            res.status(400).json({
+                success: false,
+                message: error.message
+            })
         }
     }
+
+    async activatePackage(req, res) {
+        try {
+            const { membershipId } = req.params;
+            const { paymentInfo } = req.body;
+
+            const activatedMembership = await UserMemberShipService.activatePackage(membershipId, paymentInfo);
+            res.status(200).json({
+                success: true,
+                message: 'Kích hoạt gói thành viên thành công',
+                data: activatedMembership
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    // Thêm endpoint mới để kích hoạt gói thành viên từ orderCode
+    async activateFromOrder(req, res) {
+        try {
+            const { orderCode } = req.params;
+            if (!orderCode) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Thiếu mã đơn hàng'
+                });
+            }
+
+            const result = await UserMemberShipService.activateFromOrderCode(orderCode);
+            res.status(200).json({
+                success: true,
+                message: 'Kích hoạt gói thành viên từ đơn hàng thành công',
+                data: result
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    async getUserMembershipDetails(req, res) {
+        try {
+            const { userId } = req.params;
+            const details = await UserMemberShipService.getUserMembershipDetails(userId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Lấy thông tin gói thành viên thành công',
+                data: details
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
     async getActiveMembership(req, res) {
         try {
             const userMemberShip = await UserMemberShipService.getActiveMembership(req.params.userId)

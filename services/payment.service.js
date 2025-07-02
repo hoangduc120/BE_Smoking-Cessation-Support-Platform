@@ -15,6 +15,7 @@ const {
 } = require("../configs/momo.config");
 const Order = require("../models/order.model");
 const Payment = require("../models/payment.model");
+const UserMembership = require("../models/userMemberShip.model");
 const crypto = require('crypto');
 const axios = require('axios');
 
@@ -74,6 +75,56 @@ class PaymentService {
                 payment.paymentStatus = "success";
                 payment.transactionId = vnpParams.vnp_TransactionNo;
                 payment.paymentDetails = vnpParams;
+
+                // Tự động kích hoạt gói thành viên sau khi thanh toán thành công
+                try {
+                    // Kiểm tra xem đơn hàng có liên quan đến gói thành viên không
+                    if (order.memberShipPlanId) {
+                        // Tìm thông tin gói thành viên
+                        const memberShipPlan = await require("../models/memberShipPlan.model")
+                            .findById(order.memberShipPlanId);
+
+                        if (memberShipPlan) {
+                            // Kiểm tra xem đã có gói thành viên đang hoạt động không
+                            const existingMembership = await UserMembership.findOne({
+                                userId: order.userId,
+                                paymentStatus: 'paid',
+                                endDate: { $gte: new Date() }
+                            });
+
+                            if (existingMembership) {
+                                console.log(`Người dùng ${order.userId} đã có gói thành viên đang hoạt động`);
+                            } else {
+                                // Tạo mới gói thành viên
+                                const startDate = new Date();
+                                const endDate = new Date(startDate.getTime() + memberShipPlan.duration * 24 * 60 * 60 * 1000);
+
+                                const userMembership = new UserMembership({
+                                    userId: order.userId,
+                                    memberShipPlanId: memberShipPlan._id,
+                                    startDate,
+                                    endDate,
+                                    paymentStatus: 'paid',
+                                    price: order.totalAmount,
+                                    paymentInfo: {
+                                        orderId: order.orderCode,
+                                        amount: order.totalAmount,
+                                        createDate: payment.createdAt.toISOString(),
+                                        transactionId: payment.transactionId || vnpParams.vnp_TransactionNo,
+                                        paymentDate: new Date(),
+                                        bankCode: vnpParams.vnp_BankCode || 'UNKNOWN'
+                                    }
+                                });
+
+                                await userMembership.save();
+                                console.log(`Đã kích hoạt gói thành viên ${memberShipPlan.name} cho người dùng ${order.userId}`);
+                            }
+                        }
+                    }
+                } catch (membershipError) {
+                    console.error("Lỗi khi tự động kích hoạt gói thành viên:", membershipError);
+                    // Không throw lỗi để tiếp tục xử lý thanh toán
+                }
             } else {
                 order.orderStatus = "cancelled";
                 payment.paymentStatus = "failed";
@@ -184,6 +235,56 @@ class PaymentService {
                 payment.paymentStatus = "success"
                 payment.transactionId = momoParams.transactionId || momoParams.transId
                 payment.paymentDetails = momoParams
+
+                // Tự động kích hoạt gói thành viên sau khi thanh toán thành công
+                try {
+                    // Kiểm tra xem đơn hàng có liên quan đến gói thành viên không
+                    if (order.memberShipPlanId) {
+                        // Tìm thông tin gói thành viên
+                        const memberShipPlan = await require("../models/memberShipPlan.model")
+                            .findById(order.memberShipPlanId);
+
+                        if (memberShipPlan) {
+                            // Kiểm tra xem đã có gói thành viên đang hoạt động không
+                            const existingMembership = await UserMembership.findOne({
+                                userId: order.userId,
+                                paymentStatus: 'paid',
+                                endDate: { $gte: new Date() }
+                            });
+
+                            if (existingMembership) {
+                                console.log(`Người dùng ${order.userId} đã có gói thành viên đang hoạt động`);
+                            } else {
+                                // Tạo mới gói thành viên
+                                const startDate = new Date();
+                                const endDate = new Date(startDate.getTime() + memberShipPlan.duration * 24 * 60 * 60 * 1000);
+
+                                const userMembership = new UserMembership({
+                                    userId: order.userId,
+                                    memberShipPlanId: memberShipPlan._id,
+                                    startDate,
+                                    endDate,
+                                    paymentStatus: 'paid',
+                                    price: order.totalAmount,
+                                    paymentInfo: {
+                                        orderId: order.orderCode,
+                                        amount: order.totalAmount,
+                                        createDate: payment.createdAt.toISOString(),
+                                        transactionId: payment.transactionId || momoParams.transactionId || momoParams.transId,
+                                        paymentDate: new Date(),
+                                        bankCode: 'MOMO'
+                                    }
+                                });
+
+                                await userMembership.save();
+                                console.log(`Đã kích hoạt gói thành viên ${memberShipPlan.name} cho người dùng ${order.userId}`);
+                            }
+                        }
+                    }
+                } catch (membershipError) {
+                    console.error("Lỗi khi tự động kích hoạt gói thành viên:", membershipError);
+                    // Không throw lỗi để tiếp tục xử lý thanh toán
+                }
             } else {
                 order.orderStatus = "cancelled"
                 payment.paymentStatus = "failed"
@@ -370,6 +471,6 @@ class PaymentService {
             throw new Error(`Failed to get payment history: ${error.message}`);
         }
     }
-   
+
 }
 module.exports = PaymentService;

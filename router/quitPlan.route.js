@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const quitPlanController = require('../controllers/quitPlan.controller');
 const { authMiddleware, restrictTo } = require('../middlewares/authMiddleware');
+const { checkCustomQuitPlanAccess } = require('../middlewares/membershipMiddleware');
 
 // Routes cụ thể phải đặt trước routes có parameter
 router.post('/quitplans/select', authMiddleware, restrictTo('user'), quitPlanController.selectQuitPlan);
@@ -13,8 +14,8 @@ router.get('/quitplans/history', authMiddleware, restrictTo('user'), quitPlanCon
 router.get('/quitplans/:planId/completion', authMiddleware, quitPlanController.getCompleteByPlanId);
 
 
-router.post("/quitplans/custom", authMiddleware, restrictTo('user'), quitPlanController.createCustomQuitPlan);
-router.get("/quitplans/custom", authMiddleware, restrictTo('coach'), quitPlanController.getCustomQuitPlan);
+router.post("/quitplans/custom", authMiddleware, checkCustomQuitPlanAccess, restrictTo('user'), quitPlanController.createCustomQuitPlan);
+router.get("/quitplans/custom", authMiddleware, restrictTo('coach', 'user'), quitPlanController.getCustomQuitPlan);
 router.post("/quitplans/custom/:requestId/approve", authMiddleware, restrictTo('coach'), quitPlanController.approveCustomQuitPlanRequest);
 router.post("/quitplans/custom/:requestId/reject", authMiddleware, restrictTo('coach'), quitPlanController.rejectCustomQuitPlanRequest);
 

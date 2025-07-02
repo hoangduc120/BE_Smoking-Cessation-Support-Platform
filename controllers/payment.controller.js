@@ -1,5 +1,7 @@
 const PaymentService = require("../services/payment.service");
-
+const Order = require("../models/order.model");
+const Payment = require("../models/payment.model");
+const UserMembership = require("../models/userMemberShip.model");
 
 class PaymentController {
     static async createPaymentUrl(req, res) {
@@ -212,10 +214,6 @@ class PaymentController {
                     message: "Missing orderCode or vnp_TxnRef"
                 });
             }
-
-            const Order = require("../models/order.model");
-            const Payment = require("../models/payment.model");
-
             const order = await Order.findOne({ orderCode: orderCode });
             if (!order) {
                 return res.status(404).json({
@@ -237,6 +235,46 @@ class PaymentController {
                 order.orderStatus = "completed";
                 payment.paymentStatus = "success";
                 payment.transactionId = transactionNo;
+
+                // Tự động kích hoạt gói thành viên
+                if (order.memberShipPlanId) {
+                    const MemberShipPlan = require("../models/memberShipPlan.model");
+                    const memberShipPlan = await MemberShipPlan.findById(order.memberShipPlanId);
+
+                    if (memberShipPlan) {
+                        // Kiểm tra xem đã có gói thành viên đang hoạt động không
+                        const existingMembership = await UserMembership.findOne({
+                            userId: order.userId,
+                            paymentStatus: 'paid',
+                            endDate: { $gte: new Date() }
+                        });
+
+                        if (!existingMembership) {
+                            // Tạo mới gói thành viên
+                            const startDate = new Date();
+                            const endDate = new Date(startDate.getTime() + memberShipPlan.duration * 24 * 60 * 60 * 1000);
+
+                            const userMembership = new UserMembership({
+                                userId: order.userId,
+                                memberShipPlanId: memberShipPlan._id,
+                                startDate,
+                                endDate,
+                                paymentStatus: 'paid',
+                                price: order.totalAmount,
+                                paymentInfo: {
+                                    orderId: order.orderCode,
+                                    amount: order.totalAmount,
+                                    createDate: payment.createdAt.toISOString(),
+                                    transactionId: transactionNo,
+                                    paymentDate: new Date(),
+                                    bankCode: 'VNPAY'
+                                }
+                            });
+
+                            await userMembership.save();
+                        }
+                    }
+                }
             } else {
                 order.orderStatus = "cancelled";
                 payment.paymentStatus = "failed";
@@ -261,7 +299,7 @@ class PaymentController {
                     }
                 }
             });
-        } catch (error) {   
+        } catch (error) {
             res.status(500).json({
                 success: false,
                 message: error.message
@@ -285,6 +323,7 @@ class PaymentController {
 
             const Order = require("../models/order.model");
             const Payment = require("../models/payment.model");
+            const UserMembership = require("../models/userMemberShip.model");
 
             let order = await Order.findOne({ orderCode: orderCode });
 
@@ -315,6 +354,46 @@ class PaymentController {
                 order.orderStatus = "completed";
                 payment.paymentStatus = "success";
                 payment.transactionId = transactionId;
+
+                // Tự động kích hoạt gói thành viên
+                if (order.memberShipPlanId) {
+                    const MemberShipPlan = require("../models/memberShipPlan.model");
+                    const memberShipPlan = await MemberShipPlan.findById(order.memberShipPlanId);
+
+                    if (memberShipPlan) {
+                        // Kiểm tra xem đã có gói thành viên đang hoạt động không
+                        const existingMembership = await UserMembership.findOne({
+                            userId: order.userId,
+                            paymentStatus: 'paid',
+                            endDate: { $gte: new Date() }
+                        });
+
+                        if (!existingMembership) {
+                            // Tạo mới gói thành viên
+                            const startDate = new Date();
+                            const endDate = new Date(startDate.getTime() + memberShipPlan.duration * 24 * 60 * 60 * 1000);
+
+                            const userMembership = new UserMembership({
+                                userId: order.userId,
+                                memberShipPlanId: memberShipPlan._id,
+                                startDate,
+                                endDate,
+                                paymentStatus: 'paid',
+                                price: order.totalAmount,
+                                paymentInfo: {
+                                    orderId: order.orderCode,
+                                    amount: order.totalAmount,
+                                    createDate: payment.createdAt.toISOString(),
+                                    transactionId: transactionId,
+                                    paymentDate: new Date(),
+                                    bankCode: 'MOMO'
+                                }
+                            });
+
+                            await userMembership.save();
+                        }
+                    }
+                }
             } else {
                 order.orderStatus = "cancelled";
                 payment.paymentStatus = "failed";
@@ -387,7 +466,7 @@ class PaymentController {
 
     // Test database connection
     static async testDatabase(req, res) {
-        try {   
+        try {
             const result = await PaymentService.testDatabaseConnection();
 
             res.status(200).json({
