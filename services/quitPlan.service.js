@@ -787,29 +787,60 @@ class QuitPlanService {
         throw new Error('User already has an ongoing quit plan');
       }
 
-      const quitPlan = new QuitPlan(
-        {
-          ...quitPlanData,
-          userId: request.userId,
-          coachId,
-          templateId: null,
-          status: 'ongoing'
-        })
-      await quitPlan.save()
+      // Tính thời gian từ lúc coach approve (tương tự selectQuitPlan)
+      const startDate = new Date();
+      const endDate = new Date(startDate.getTime() + (quitPlanData.duration * 24 * 60 * 60 * 1000));
+
+      const quitPlan = new QuitPlan({
+        ...quitPlanData,
+        userId: request.userId,
+        coachId,
+        templateId: null,
+        status: 'ongoing',
+        startDate,
+        endDate
+      });
+      await quitPlan.save();
 
       if (stagesData && stagesData.length > 0) {
-        const stages = stagesData.map(stage => ({
-          ...stage,
-          quitPlanId: quitPlan._id
-        }))
-        await QuitPlanStage.insertMany(stages)
+        const startOfToday = new Date(startDate);
+        startOfToday.setHours(0, 0, 0, 0);
+
+        let currentDayOffset = 0;
+
+        const newStages = stagesData.map(stage => {
+          const stageStartDate = new Date(startOfToday);
+          stageStartDate.setDate(startOfToday.getDate() + currentDayOffset);
+
+          const stageEndDate = new Date(stageStartDate);
+          stageEndDate.setDate(stageStartDate.getDate() + stage.duration - 1);
+          stageEndDate.setHours(23, 59, 59, 999);
+
+          currentDayOffset += stage.duration;
+
+          return {
+            ...stage,
+            quitPlanId: quitPlan._id,
+            start_date: stageStartDate,
+            end_date: stageEndDate,
+            completed: false
+          };
+        });
+
+        await QuitPlanStage.insertMany(newStages);
       }
+
       request.status = 'approved'
       request.coachId = coachId
       request.quitPlanId = quitPlan._id
       request.approvedAt = new Date()
       await request.save()
-      return { request, quitPlan }
+
+      const populatedPlan = await QuitPlan.findById(quitPlan._id)
+        .populate('coachId', 'userName email')
+        .populate('userId', 'userName email');
+
+      return { request, quitPlan: populatedPlan }
     } catch (error) {
       throw new Error(`Failed to approve custom quit plan request: ${error.message}`);
     }

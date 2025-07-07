@@ -285,7 +285,7 @@ class QuitPlanController {
         return BAD_REQUEST(res, 'User authentication required');
       }
       const userId = req.user._id;
-      if(req.user.role !== 'user') {
+      if (req.user.role !== 'user') {
         return BAD_REQUEST(res, 'Only users can create custom quit plans');
       }
       const requestData = {
@@ -318,6 +318,38 @@ class QuitPlanController {
       }
       const { requestId } = req.params;
       const { quitPlanData, stagesData } = req.body;
+
+      if (!quitPlanData || !quitPlanData.duration) {
+        return BAD_REQUEST(res, 'quitPlanData with duration is required');
+      }
+
+      const duration = parseInt(quitPlanData.duration);
+      if (isNaN(duration) || duration <= 0 || duration > 365) {
+        return BAD_REQUEST(res, 'Duration must be a valid number between 1 and 365 days');
+      }
+
+      if (!stagesData || !Array.isArray(stagesData) || stagesData.length === 0) {
+        return BAD_REQUEST(res, 'stagesData array is required and cannot be empty');
+      }
+
+      let totalStageDuration = 0;
+      for (let i = 0; i < stagesData.length; i++) {
+        const stage = stagesData[i];
+        if (!stage.stage_name || !stage.duration) {
+          return BAD_REQUEST(res, `Stage ${i + 1}: stage_name and duration are required`);
+        }
+
+        const stageDuration = parseInt(stage.duration);
+        if (isNaN(stageDuration) || stageDuration <= 0 || stageDuration > 365) {
+          return BAD_REQUEST(res, `Stage ${i + 1}: duration must be a valid number between 1 and 365 days`);
+        }
+
+        totalStageDuration += stageDuration;
+      }
+
+      if (totalStageDuration > duration) {
+        return BAD_REQUEST(res, `Total stage duration (${totalStageDuration}) cannot exceed plan duration (${duration})`);
+      }
 
       const result = await quitPlanService.approveCustomQuitPlanRequest(requestId, req.user._id, quitPlanData, stagesData)
       return OK(res, 'Custom quit plan request approved successfully', result);
