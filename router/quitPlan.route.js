@@ -16,6 +16,7 @@ router.get('/quitplans/:planId/completion', authMiddleware, quitPlanController.g
 
 router.post("/quitplans/custom", authMiddleware, checkCustomQuitPlanAccess, restrictTo('user'), quitPlanController.createCustomQuitPlan);
 router.get("/quitplans/custom", authMiddleware, restrictTo('coach', 'user'), quitPlanController.getCustomQuitPlan);
+router.get("/quitplans/custom/approved", authMiddleware, restrictTo('coach', 'user', 'admin'), quitPlanController.getApprovedCustomQuitPlans);
 router.post("/quitplans/custom/:requestId/approve", authMiddleware, restrictTo('coach'), quitPlanController.approveCustomQuitPlanRequest);
 router.post("/quitplans/custom/:requestId/reject", authMiddleware, restrictTo('coach'), quitPlanController.rejectCustomQuitPlanRequest);
 

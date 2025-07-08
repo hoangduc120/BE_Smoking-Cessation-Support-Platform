@@ -370,6 +370,39 @@ class QuitPlanController {
       return BAD_REQUEST(res, error.message);
     }
   }
+
+  async getApprovedCustomQuitPlans(req, res) {
+    try {
+      const { userId, coachId } = req.query;
+
+      if (req.user.role === 'user') {
+        if (userId && userId !== req.user._id.toString()) {
+          return BAD_REQUEST(res, 'Users can only view their own approved custom plans');
+        }
+        const filters = { userId: req.user._id };
+        const result = await quitPlanService.getApprovedCustomQuitPlans(filters);
+        return OK(res, 'Approved custom quit plans fetched successfully', result);
+      } else if (req.user.role === 'coach') {
+        const filters = {};
+        if (userId) filters.userId = userId;
+        if (coachId) filters.coachId = coachId;
+
+        const result = await quitPlanService.getApprovedCustomQuitPlans(filters);
+        return OK(res, 'Approved custom quit plans fetched successfully', result);
+      } else if (req.user.role === 'admin') {
+        const filters = {};
+        if (userId) filters.userId = userId;
+        if (coachId) filters.coachId = coachId;
+
+        const result = await quitPlanService.getApprovedCustomQuitPlans(filters);
+        return OK(res, 'Approved custom quit plans fetched successfully', result);
+      } else {
+        return BAD_REQUEST(res, 'Unauthorized role');
+      }
+    } catch (error) {
+      return BAD_REQUEST(res, error.message);
+    }
+  }
 }
 
 module.exports = new QuitPlanController();

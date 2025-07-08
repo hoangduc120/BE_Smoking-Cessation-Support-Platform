@@ -3927,6 +3927,119 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /plans/quitplans/custom/approved:
+    get:
+      tags:
+        - CustomQuitPlan
+      summary: Get approved custom quit plans (Coach/User/Admin)
+      operationId: getApprovedCustomQuitPlans
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          description: Filter by user ID (optional for coaches/admins, ignored for users)
+          schema:
+            type: string
+            example: '60f7b3b3b3b3b3b3b3b3b3b3'
+        - name: coachId
+          in: query
+          description: Filter by coach ID (optional for coaches/admins, ignored for users)
+          schema:
+            type: string
+            example: '60f7b3b3b3b3b3b3b3b3b3b4'
+      responses:
+        '200':
+          description: Approved custom quit plans retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Approved custom quit plans fetched successfully'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApprovedCustomQuitPlan'
+              example:
+                success: true
+                message: 'Approved custom quit plans fetched successfully'
+                data:
+                  - customRequest:
+                      _id: 'req_60f7b3b3b3b3b3b3b3b3b3b3'
+                      title: 'Kế hoạch cá nhân cho công việc'
+                      description: 'Kế hoạch phù hợp với lịch làm việc ca đêm'
+                      rules:
+                        - rule: 'daily'
+                          value: 3
+                          description: 'Giảm 3 điếu mỗi ngày'
+                        - rule: 'duration'
+                          value: 21
+                          description: 'Hoàn thành trong 21 ngày'
+                      status: 'approved'
+                      approvedAt: '2024-01-15T10:30:00.000Z'
+                      createdAt: '2024-01-10T09:00:00.000Z'
+                    quitPlan:
+                      _id: 'plan_60f7b3b3b3b3b3b3b3b3b3b5'
+                      title: 'Kế hoạch được tùy chỉnh'
+                      reason: 'Phù hợp với ca làm đêm'
+                      status: 'ongoing'
+                      startDate: '2024-01-15T10:30:00.000Z'
+                      endDate: '2024-02-05T10:30:00.000Z'
+                      duration: 21
+                    stages:
+                      - _id: 'stage_60f7b3b3b3b3b3b3b3b3b3b6'
+                        stage_name: 'Giai đoạn 1: Giảm dần'
+                        description: 'Giảm từ 15 xuống 10 điếu/ngày'
+                        order_index: 1
+                        duration: 10
+                        completed: true
+                        start_date: '2024-01-15T00:00:00.000Z'
+                        end_date: '2024-01-24T23:59:59.999Z'
+                      - _id: 'stage_60f7b3b3b3b3b3b3b3b3b3b7'
+                        stage_name: 'Giai đoạn 2: Bỏ hoàn toàn'
+                        description: 'Ngừng hút thuốc hoàn toàn'
+                        order_index: 2
+                        duration: 11
+                        completed: false
+                        start_date: '2024-01-25T00:00:00.000Z'
+                        end_date: '2024-02-04T23:59:59.999Z'
+                    progress:
+                      completedStages: 1
+                      totalStages: 2
+                      completionPercentage: 50
+                      isCompleted: false
+                    user:
+                      _id: 'user_60f7b3b3b3b3b3b3b3b3b3b3'
+                      userName: 'nguyen_van_a'
+                      email: 'nguyenvana@example.com'
+                    coach:
+                      _id: 'coach_60f7b3b3b3b3b3b3b3b3b3b4'
+                      userName: 'coach_minh'
+                      email: 'coachminh@example.com'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Users can only view their own approved custom plans
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request parameters or unauthorized role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /plans/quitplans/custom/{requestId}/approve:
     post:
       tags:
@@ -7372,3 +7485,225 @@ components:
           nullable: true
           example: 'Yêu cầu không khả thi với thời gian ngắn. Vui lòng thử lại với kế hoạch dài hạn hơn.'
           description: Optional reason for rejecting the custom request. This will be saved and can be shown to the user.
+    ApprovedCustomQuitPlan:
+      type: object
+      description: Represents a complete approved custom quit plan with its execution progress and details
+      properties:
+        customRequest:
+          type: object
+          description: Original custom quit plan request information
+          properties:
+            _id:
+              type: string
+              example: 'req_60f7b3b3b3b3b3b3b3b3b3b3'
+              description: Unique identifier of the custom request
+            title:
+              type: string
+              example: 'Kế hoạch cá nhân cho công việc'
+              description: Title of the custom quit plan request
+            description:
+              type: string
+              nullable: true
+              example: 'Kế hoạch phù hợp với lịch làm việc ca đêm'
+              description: Description of user requirements
+            rules:
+              type: array
+              items:
+                type: object
+                properties:
+                  rule:
+                    type: string
+                    enum: ['daily', 'duration', 'specificGoal', 'other']
+                    example: 'daily'
+                  value:
+                    type: string
+                    example: '3'
+                  description:
+                    type: string
+                    example: 'Giảm 3 điếu mỗi ngày'
+                required:
+                  - rule
+                  - value
+                  - description
+              description: Custom rules defined by the user
+            status:
+              type: string
+              enum: ['approved']
+              example: 'approved'
+              description: Status is always 'approved' for this response
+            approvedAt:
+              type: string
+              format: date-time
+              example: '2024-01-15T10:30:00.000Z'
+              description: When the request was approved
+            createdAt:
+              type: string
+              format: date-time
+              example: '2024-01-10T09:00:00.000Z'
+              description: When the request was created
+          required:
+            - _id
+            - title
+            - rules
+            - status
+            - approvedAt
+            - createdAt
+        quitPlan:
+          $ref: '#/components/schemas/QuitPlan'
+          description: The created quit plan from the approved request
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuitPlanStage'
+          description: All stages of the quit plan with their completion status
+        progress:
+          type: object
+          description: Progress statistics for the quit plan
+          properties:
+            completedStages:
+              type: integer
+              example: 1
+              description: Number of completed stages
+            totalStages:
+              type: integer
+              example: 2
+              description: Total number of stages in the plan
+            completionPercentage:
+              type: integer
+              example: 50
+              description: Overall completion percentage of the plan
+            isCompleted:
+              type: boolean
+              example: false
+              description: Whether the entire plan is completed
+          required:
+            - completedStages
+            - totalStages
+            - completionPercentage
+            - isCompleted
+        user:
+          type: object
+          description: User who created the custom request
+          properties:
+            _id:
+              type: string
+              example: 'user_60f7b3b3b3b3b3b3b3b3b3b3'
+            userName:
+              type: string
+              example: 'nguyen_van_a'
+            email:
+              type: string
+              format: email
+              example: 'nguyenvana@example.com'
+          required:
+            - _id
+            - userName
+            - email
+        coach:
+          type: object
+          description: Coach who approved the request
+          properties:
+            _id:
+              type: string
+              example: 'coach_60f7b3b3b3b3b3b3b3b3b3b4'
+            userName:
+              type: string
+              example: 'coach_minh'
+            email:
+              type: string
+              format: email
+              example: 'coachminh@example.com'
+          required:
+            - _id
+            - userName
+            - email
+      required:
+        - customRequest
+        - quitPlan
+        - stages
+        - progress
+        - user
+        - coach
+  /plans/quitplans/custom/{requestId}/approve:
+    post:
+      tags:
+        - CustomQuitPlan
+      summary: Approve custom quit plan request (Coach only)
+      description: Allows a coach to approve a pending custom quit plan request by creating an actual quit plan and stages for the user. The user can then start following their personalized plan.
+      operationId: approveCustomQuitPlanRequest
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          description: ID of the custom quit plan request to approve
+          schema:
+            type: string
+            example: 'custom-request-12345'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveCustomQuitPlanRequest'
+            example:
+              quitPlanData:
+                title: "Kế hoạch cá nhân cho User"
+                reason: "Kế hoạch được tùy chỉnh theo yêu cầu"
+                duration: 30
+                image: "https://example.com/custom-plan.jpg"
+              stagesData:
+                - stage_name: "Giai đoạn 1: Giảm dần"
+                  description: "Giảm 50% lượng thuốc lá"
+                  order_index: 1
+                  duration: 15
+                - stage_name: "Giai đoạn 2: Bỏ hoàn toàn"
+                  description: "Ngừng hút thuốc hoàn toàn"
+                  order_index: 2
+                  duration: 15
+        required: true
+      responses:
+        '200':
+          description: Custom quit plan request approved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Custom quit plan request approved successfully'
+                  data:
+                    type: object
+                    properties:
+                      request:
+                        $ref: '#/components/schemas/CustomQuitPlan'
+                      quitPlan:
+                        $ref: '#/components/schemas/QuitPlan'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Coach role required or request assigned to another coach
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request data, request not pending, or user already has ongoing plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Custom quit plan request not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
