@@ -868,5 +868,67 @@ class QuitPlanService {
       throw new Error(`Failed to reject custom quit plan request: ${error.message}`);
     }
   }
+
+  async getApprovedCustomQuitPlans(filters = {}) {
+    try {
+      const query = { status: 'approved' };
+
+      if (filters.userId) query.userId = filters.userId;
+      if (filters.coachId) query.coachId = filters.coachId;
+
+      const approvedRequests = await CustomQuitPlan.find(query)
+        .populate('userId', 'userName email')
+        .populate('coachId', 'userName email')
+        .populate({
+          path: 'quitPlanId',
+          populate: [
+            { path: 'userId', select: 'userName email' },
+            { path: 'coachId', select: 'userName email' }
+          ]
+        })
+        .sort({ approvedAt: -1 });
+
+      const result = await Promise.all(
+        approvedRequests.map(async (request) => {
+          if (request.quitPlanId) {
+            const stages = await QuitPlanStage.find({ quitPlanId: request.quitPlanId._id })
+              .sort({ order_index: 1 });
+
+            const completedStages = stages.filter(stage => stage.completed);
+            const totalStages = stages.length;
+            const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
+
+            return {
+              customRequest: {
+                _id: request._id,
+                title: request.title,
+                description: request.description,
+                rules: request.rules,
+                status: request.status,
+                approvedAt: request.approvedAt,
+                createdAt: request.createdAt
+              },
+              quitPlan: request.quitPlanId,
+              stages: stages,
+              progress: {
+                completedStages: completedStages.length,
+                totalStages: totalStages,
+                completionPercentage: Math.round(completionPercentage),
+                isCompleted: request.quitPlanId.status === 'completed'
+              },
+              user: request.userId,
+              coach: request.coachId
+            };
+          }
+          return null;
+        })
+      );
+
+      // Lọc bỏ các kết quả null
+      return result.filter(item => item !== null);
+    } catch (error) {
+      throw new Error(`Failed to get approved custom quit plans: ${error.message}`);
+    }
+  }
 }
 module.exports = new QuitPlanService();

@@ -43,7 +43,7 @@ var customQuitPlanSchema = new mongoose.Schema({
     },
     quitPlanId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'QuitPlan',
+        ref: 'Quitplan',
         default: null,
     },
     rejectionReason: {
