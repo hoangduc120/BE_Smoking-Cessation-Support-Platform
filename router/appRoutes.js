@@ -52,7 +52,7 @@ const routes = [
     route: userMemberShipRoute,
   },
   {
-    path: "/payments",
+    path: "/payment",
     route: paymentRoute,
   },
   {

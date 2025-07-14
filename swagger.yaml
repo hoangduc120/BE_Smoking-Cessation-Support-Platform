@@ -2224,7 +2224,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /payments/status/{orderId}:
+  /payment/status/{orderId}:
     get:
       tags:
         - Payment
@@ -2266,7 +2266,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /payments/history:
+  /payment/history:
     get:
       tags:
         - Payment
