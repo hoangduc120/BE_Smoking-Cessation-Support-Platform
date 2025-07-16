@@ -4948,6 +4948,864 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # ============= ADMIN API ENDPOINTS =============
+  /admin/accounts:
+    get:
+      tags:
+        - Admin - Account Management
+      summary: Lấy danh sách tất cả tài khoản
+      description: Retrieves a list of all user accounts with pagination and filtering options (Admin only).
+      operationId: getAllAccounts
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Số trang
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Số lượng tài khoản mỗi trang
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [admin, user, coach]
+          description: Lọc theo role
+        - in: query
+          name: isActive
+          schema:
+            type: boolean
+          description: Lọc theo trạng thái active
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Tìm kiếm theo username, email, phone
+      responses:
+        '200':
+          description: Lấy danh sách tài khoản thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAccountsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/accounts/{id}:
+    get:
+      tags:
+        - Admin - Account Management
+      summary: Lấy thông tin chi tiết tài khoản
+      description: Retrieves detailed information about a specific user account (Admin only).
+      operationId: getAccountById
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của tài khoản
+      responses:
+        '200':
+          description: Lấy thông tin tài khoản thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAccountDetailResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/accounts/{id}/status:
+    put:
+      tags:
+        - Admin - Account Management
+      summary: Cập nhật trạng thái isActive của tài khoản
+      description: Updates the active status of a user account to enable/disable access (Admin only).
+      operationId: updateAccountStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của tài khoản
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isActive:
+                  type: boolean
+                  description: Trạng thái active mới (true = kích hoạt, false = vô hiệu hóa)
+              required:
+                - isActive
+            example:
+              isActive: false
+      responses:
+        '200':
+          description: Cập nhật trạng thái thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAccountUpdateResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/accounts/{id}/role:
+    put:
+      tags:
+        - Admin - Account Management
+      summary: Cập nhật role của user
+      description: Updates the role of a user account (Admin only).
+      operationId: updateUserRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [admin, user, coach]
+                  description: Role mới
+              required:
+                - role
+            example:
+              role: "coach"
+      responses:
+        '200':
+          description: Cập nhật role thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAccountUpdateResponse'
+        '400':
+          description: Invalid role or request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Admin - Account Management
+      summary: Xóa mềm tài khoản
+      description: Soft deletes a user account by marking it as deleted (Admin only).
+      operationId: deleteAccount
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của tài khoản
+      responses:
+        '200':
+          description: Xóa tài khoản thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAccountUpdateResponse'
+        '400':
+          description: Cannot delete own account or invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/accounts/{id}/restore:
+    put:
+      tags:
+        - Admin - Account Management
+      summary: Khôi phục tài khoản đã xóa
+      description: Restores a soft-deleted user account (Admin only).
+      operationId: restoreAccount
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của tài khoản
+      responses:
+        '200':
+          description: Khôi phục tài khoản thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAccountUpdateResponse'
+        '400':
+          description: Account not deleted or invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # /admin/accounts/{id}/info:
+  #   put:
+  #     tags:
+  #       - Admin - Account Management
+  #     summary: Cập nhật thông tin user (bởi admin)
+  #     description: Updates user information as an admin (Admin only).
+  #     operationId: updateUserInfo
+  #     security:
+  #       - BearerAuth: []
+  #     parameters:
+  #       - in: path
+  #         name: id
+  #         required: true
+  #         schema:
+  #           type: string
+  #         description: ID của user
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               userName:
+  #                 type: string
+  #                 example: "updated_username"
+  #               email:
+  #                 type: string
+  #                 format: email
+  #                 example: "newemail@example.com"
+  #               gender:
+  #                 type: string
+  #                 enum: [male, female, other]
+  #                 example: "male"
+  #               bio:
+  #                 type: string
+  #                 example: "Updated bio"
+  #               phone:
+  #                 type: string
+  #                 example: "0123456789"
+  #               address:
+  #                 type: string
+  #                 example: "New address"
+  #     responses:
+  #       '200':
+  #         description: Cập nhật thông tin user thành công
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/AdminAccountUpdateResponse'
+  #       '400':
+  #         description: Invalid request data or duplicate username/email
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #       '404':
+  #         description: User not found
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #       '401':
+  #         description: Unauthorized
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #       '403':
+  #         description: Forbidden - Admin role required
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+
+  # /admin/accounts/{id}/reset-password:
+  #   put:
+  #     tags:
+  #       - Admin - Account Management
+  #     summary: Reset mật khẩu cho user
+  #     description: Resets password for a specific user account (Admin only).
+  #     operationId: resetUserPassword
+  #     security:
+  #       - BearerAuth: []
+  #     parameters:
+  #       - in: path
+  #         name: id
+  #         required: true
+  #         schema:
+  #           type: string
+  #         description: ID của user
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               newPassword:
+  #                 type: string
+  #                 minLength: 6
+  #                 example: "newpassword123"
+  #                 description: Mật khẩu mới (ít nhất 6 ký tự)
+  #             required:
+  #               - newPassword
+  #     responses:
+  #       '200':
+  #         description: Reset mật khẩu thành công
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ApiResponse'
+  #       '400':
+  #         description: Invalid password or request data
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #       '404':
+  #         description: User not found
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #       '401':
+  #         description: Unauthorized
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #       '403':
+  #         description: Forbidden - Admin role required
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+
+  # ============= ADMIN DASHBOARD & STATS =============
+  /admin/dashboard/stats:
+    get:
+      tags:
+        - Admin - Dashboard
+      summary: Lấy thống kê dashboard admin
+      description: Retrieves comprehensive dashboard statistics for admin overview.
+      operationId: getDashboardStats
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Thống kê dashboard thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDashboardStatsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/dashboard/recent-activity:
+    get:
+      tags:
+        - Admin - Dashboard
+      summary: Lấy hoạt động gần đây
+      description: Retrieves recent user activities and updates for admin monitoring.
+      operationId: getRecentActivity
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Số lượng hoạt động
+      responses:
+        '200':
+          description: Lấy hoạt động gần đây thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminRecentActivityResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # # ============= ADMIN USER MANAGEMENT =============
+  # /admin/users/role/{role}:
+  #   get:
+  #     tags:
+  #       - Admin - User Management
+  #     summary: Lấy danh sách user theo role
+  #     description: Retrieves users filtered by their role with pagination.
+  #     operationId: getUsersByRole
+  #     security:
+  #       - BearerAuth: []
+  #     parameters:
+  #       - in: path
+  #         name: role
+  #         required: true
+  #         schema:
+  #           type: string
+  #           enum: [admin, user, coach]
+  #         description: Role cần lọc
+  #       - in: query
+  #         name: page
+  #         schema:
+  #           type: integer
+  #           minimum: 1
+  #           default: 1
+  #       - in: query
+  #         name: limit
+  #         schema:
+  #           type: integer
+  #           minimum: 1
+  #           maximum: 100
+  #           default: 10
+  #     responses:
+  #       '200':
+  #         description: Lấy danh sách user theo role thành công
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/AdminUsersByRoleResponse'
+  #       '400':
+  #         description: Invalid role
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #       '401':
+  #         description: Unauthorized
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #       '403':
+  #         description: Forbidden - Admin role required
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+
+  # /admin/users/search:
+  #   post:
+  #     tags:
+  #       - Admin - User Management
+  #     summary: Tìm kiếm user nâng cao
+  #     description: Advanced user search with multiple criteria and filters.
+  #     operationId: advancedSearchUsers
+  #     security:
+  #       - BearerAuth: []
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               keyword:
+  #                 type: string
+  #                 example: "john"
+  #                 description: Từ khóa tìm kiếm (username, email, phone, bio)
+  #               role:
+  #                 type: string
+  #                 enum: [admin, user, coach]
+  #                 example: "user"
+  #               isActive:
+  #                 type: boolean
+  #                 example: true
+  #               gender:
+  #                 type: string
+  #                 enum: [male, female, other]
+  #                 example: "male"
+  #               dateFrom:
+  #                 type: string
+  #                 format: date
+  #                 example: "2024-01-01"
+  #                 description: Tìm user đăng ký từ ngày này
+  #               dateTo:
+  #                 type: string
+  #                 format: date
+  #                 example: "2024-12-31"
+  #                 description: Tìm user đăng ký đến ngày này
+  #               page:
+  #                 type: integer
+  #                 minimum: 1
+  #                 default: 1
+  #               limit:
+  #                 type: integer
+  #                 minimum: 1
+  #                 maximum: 100
+  #                 default: 10
+  #           example:
+  #             keyword: "john"
+  #             role: "user"
+  #             isActive: true
+  #             page: 1
+  #             limit: 10
+  #     responses:
+  #       '200':
+  #         description: Tìm kiếm user thành công
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/AdminSearchUsersResponse'
+  #       '401':
+  #         description: Unauthorized
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #       '403':
+  #         description: Forbidden - Admin role required
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+
+  # ============= ADMIN DATA EXPORT =============
+  /admin/export/users:
+    get:
+      tags:
+        - Admin - Export
+      summary: Export dữ liệu users
+      description: Exports user data in specified format (JSON or CSV).
+      operationId: exportUsersData
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: format
+          schema:
+            type: string
+            enum: [json, csv]
+            default: json
+          description: Định dạng export
+      responses:
+        '200':
+          description: Export dữ liệu thành công
+          content:
+            application/json:
+              schema:
+                type: string
+                description: JSON data when format=json
+            text/csv:
+              schema:
+                type: string
+                description: CSV data when format=csv
+          headers:
+            Content-Disposition:
+              description: Attachment filename
+              schema:
+                type: string
+                example: 'attachment; filename=users.json'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============= ADMIN REVENUE ANALYTICS =============
+  /admin/revenue/total:
+    get:
+      tags:
+        - Admin - Revenue Analytics
+      summary: Tổng doanh thu từ việc mua gói membership
+      description: Lấy thống kê tổng doanh thu từ payments và membership subscriptions (Admin only).
+      operationId: getTotalRevenue
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lấy thống kê doanh thu thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminRevenueStatsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/revenue/membership-stats:
+    get:
+      tags:
+        - Admin - Revenue Analytics
+      summary: Thống kê gói membership được mua nhiều nhất
+      description: Lấy thống kê chi tiết về các gói membership, gói nào được mua nhiều nhất (Admin only).
+      operationId: getMembershipPlanStats
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lấy thống kê gói membership thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminMembershipStatsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/revenue/by-period:
+    get:
+      tags:
+        - Admin - Revenue Analytics
+      summary: Doanh thu theo thời gian
+      description: Lấy thống kê doanh thu theo khoảng thời gian và group by day/week/month/year (Admin only).
+      operationId: getRevenueByPeriod
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Ngày bắt đầu (YYYY-MM-DD)
+          example: "2024-01-01"
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Ngày kết thúc (YYYY-MM-DD)
+          example: "2024-12-31"
+        - in: query
+          name: groupBy
+          schema:
+            type: string
+            enum: [day, week, month, year]
+            default: day
+          description: Nhóm theo thời gian
+      responses:
+        '200':
+          description: Lấy thống kê doanh thu theo thời gian thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminRevenueByPeriodResponse'
+        '400':
+          description: Invalid date parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/revenue/payment-stats:
+    get:
+      tags:
+        - Admin - Revenue Analytics
+      summary: Thống kê thanh toán chi tiết
+      description: Lấy thống kê chi tiết về các phương thức thanh toán, trạng thái thanh toán (Admin only).
+      operationId: getPaymentStatistics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lấy thống kê thanh toán thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPaymentStatsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   x-timing-behavior-documentation: |
     **QUIT PROGRESS TIMING LOGIC - CRITICAL BEHAVIOR:**
@@ -7624,6 +8482,367 @@ components:
         - progress
         - user
         - coach
+
+    # ============= ADMIN REVENUE ANALYTICS SCHEMAS =============
+    AdminRevenueStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Lấy thống kê doanh thu thành công"
+        data:
+          type: object
+          properties:
+            totalRevenue:
+              type: number
+              example: 50000000
+              description: Tổng doanh thu từ payments thành công (VND)
+            totalTransactions:
+              type: integer
+              example: 250
+              description: Tổng số giao dịch thành công
+            membershipRevenue:
+              type: number
+              example: 45000000
+              description: Tổng doanh thu từ membership subscriptions (VND)
+            membershipSales:
+              type: integer
+              example: 180
+              description: Tổng số membership đã bán
+            paymentMethodBreakdown:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "momo"
+                    description: Phương thức thanh toán
+                  revenue:
+                    type: number
+                    example: 25000000
+                    description: Doanh thu theo phương thức (VND)
+                  transactions:
+                    type: integer
+                    example: 120
+                    description: Số giao dịch theo phương thức
+              description: Thống kê theo phương thức thanh toán
+
+    AdminMembershipStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Lấy thống kê gói membership thành công"
+        data:
+          type: object
+          properties:
+            orderStatistics:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "60f7b3b3b3b3b3b3b3b3b3b3"
+                    description: ID của membership plan
+                  planName:
+                    type: string
+                    example: "Premium"
+                    description: Tên gói membership
+                  planPrice:
+                    type: number
+                    example: 500000
+                    description: Giá gói (VND)
+                  planLevel:
+                    type: integer
+                    example: 3
+                    description: Cấp độ gói
+                  totalSales:
+                    type: integer
+                    example: 85
+                    description: Tổng số lượng bán
+                  totalRevenue:
+                    type: number
+                    example: 42500000
+                    description: Tổng doanh thu từ gói này (VND)
+                  averageOrderValue:
+                    type: number
+                    example: 500000
+                    description: Giá trị đơn hàng trung bình
+              description: Thống kê theo orders hoàn thành
+            membershipStatistics:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "60f7b3b3b3b3b3b3b3b3b3b3"
+                  planName:
+                    type: string
+                    example: "Pro"
+                  planPrice:
+                    type: number
+                    example: 200000
+                  planLevel:
+                    type: integer
+                    example: 2
+                  planDuration:
+                    type: integer
+                    example: 30
+                    description: Thời hạn gói (ngày)
+                  totalSubscriptions:
+                    type: integer
+                    example: 120
+                    description: Tổng số subscriptions
+                  totalRevenue:
+                    type: number
+                    example: 24000000
+                    description: Tổng doanh thu từ subscriptions (VND)
+                  averagePrice:
+                    type: number
+                    example: 200000
+                    description: Giá trung bình
+              description: Thống kê theo user memberships đã thanh toán
+            totalStats:
+              type: object
+              properties:
+                totalPlans:
+                  type: integer
+                  example: 3
+                  description: Tổng số gói membership đang hoạt động
+                totalActiveSubscriptions:
+                  type: integer
+                  example: 300
+                  description: Tổng số subscriptions đang hoạt động
+                totalOrders:
+                  type: integer
+                  example: 250
+                  description: Tổng số orders đã hoàn thành
+            mostPopularPlan:
+              type: object
+              properties:
+                _id:
+                  type: string
+                  example: "60f7b3b3b3b3b3b3b3b3b3b3"
+                planName:
+                  type: string
+                  example: "Pro"
+                totalSubscriptions:
+                  type: integer
+                  example: 120
+                totalRevenue:
+                  type: number
+                  example: 24000000
+              description: Gói membership phổ biến nhất
+
+    AdminRevenueByPeriodResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Lấy thống kê doanh thu theo thời gian thành công"
+        data:
+          type: object
+          properties:
+            period:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date
+                  example: "2024-01-01"
+                endDate:
+                  type: string
+                  format: date
+                  example: "2024-12-31"
+                groupBy:
+                  type: string
+                  example: "month"
+                  enum: [day, week, month, year]
+            revenueByPeriod:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: object
+                    properties:
+                      year:
+                        type: integer
+                        example: 2024
+                      month:
+                        type: integer
+                        example: 6
+                      day:
+                        type: integer
+                        example: 15
+                    description: Thời gian theo groupBy
+                  totalRevenue:
+                    type: number
+                    example: 5000000
+                    description: Tổng doanh thu trong khoảng thời gian (VND)
+                  totalTransactions:
+                    type: integer
+                    example: 25
+                    description: Tổng số giao dịch trong khoảng thời gian
+                  averageTransactionValue:
+                    type: number
+                    example: 200000
+                    description: Giá trị giao dịch trung bình (VND)
+              description: Doanh thu theo từng khoảng thời gian
+            subscriptionsByPeriod:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: object
+                    properties:
+                      year:
+                        type: integer
+                        example: 2024
+                      month:
+                        type: integer
+                        example: 6
+                      day:
+                        type: integer
+                        example: 15
+                  totalSubscriptions:
+                    type: integer
+                    example: 15
+                    description: Tổng số subscriptions trong khoảng thời gian
+                  totalRevenue:
+                    type: number
+                    example: 3000000
+                    description: Tổng doanh thu subscription (VND)
+              description: Subscriptions theo từng khoảng thời gian
+            summary:
+              type: object
+              properties:
+                totalRevenue:
+                  type: number
+                  example: 50000000
+                  description: Tổng doanh thu trong khoảng thời gian (VND)
+                totalTransactions:
+                  type: integer
+                  example: 250
+                  description: Tổng số giao dịch trong khoảng thời gian
+                totalSubscriptions:
+                  type: integer
+                  example: 180
+                  description: Tổng số subscriptions trong khoảng thời gian
+
+    AdminPaymentStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Lấy thống kê thanh toán thành công"
+        data:
+          type: object
+          properties:
+            paymentStatusBreakdown:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "success"
+                    description: Trạng thái thanh toán
+                  count:
+                    type: integer
+                    example: 250
+                    description: Số lượng giao dịch
+                  totalAmount:
+                    type: number
+                    example: 50000000
+                    description: Tổng số tiền (VND)
+              description: Thống kê theo trạng thái thanh toán
+            paymentMethodBreakdown:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "momo"
+                    description: Phương thức thanh toán
+                  count:
+                    type: integer
+                    example: 120
+                    description: Số lượng giao dịch thành công
+                  totalAmount:
+                    type: number
+                    example: 25000000
+                    description: Tổng số tiền (VND)
+                  averageAmount:
+                    type: number
+                    example: 208333
+                    description: Giá trị giao dịch trung bình (VND)
+              description: Thống kê phương thức thanh toán thành công
+            recentPayments:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "success"
+                  count:
+                    type: integer
+                    example: 45
+                    description: Số giao dịch trong 30 ngày qua
+                  totalAmount:
+                    type: number
+                    example: 9000000
+                    description: Tổng tiền trong 30 ngày qua (VND)
+              description: Thống kê thanh toán 30 ngày qua
+            failedPayments:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "momo"
+                    description: Phương thức thanh toán
+                  failedCount:
+                    type: integer
+                    example: 5
+                    description: Số giao dịch thất bại
+                  lostRevenue:
+                    type: number
+                    example: 1000000
+                    description: Doanh thu bị mất do thất bại (VND)
+              description: Thống kê thanh toán thất bại
+            totalPayments:
+              type: integer
+              example: 275
+              description: Tổng số giao dịch
+            successfulPayments:
+              type: integer
+              example: 250
+              description: Số giao dịch thành công
+            failedPaymentsCount:
+              type: integer
+              example: 25
+              description: Số giao dịch thất bại
+
   /plans/quitplans/custom/{requestId}/approve:
     post:
       tags:
