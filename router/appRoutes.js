@@ -13,6 +13,7 @@ const userMemberShipRoute = require("./userMemberShip.route");
 const paymentRoute = require("./payment.route");
 const quitProgressRoute = require("./quitProgress.route");
 const planMonitorRoute = require("./planMonitor.route");
+const adminRoute = require("./admin.route");
 
 const routes = [
   {
@@ -62,6 +63,10 @@ const routes = [
   {
     path: "/monitor",
     route: planMonitorRoute,
+  },
+  {
+    path: "/admin",
+    route: adminRoute,
   },
 ];
 
