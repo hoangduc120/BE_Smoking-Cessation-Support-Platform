@@ -294,7 +294,7 @@ class QuitProgressService {
                         </div>
 
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/progress" 
+                            <a href="${process.env.FRONTEND_URL || 'https://smoking-cessation-support-platform-liart.vercel.app'}/progress" 
                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                                       color: white; 
                                       padding: 15px 30px; 

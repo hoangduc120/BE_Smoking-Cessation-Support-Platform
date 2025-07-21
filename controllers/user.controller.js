@@ -95,7 +95,7 @@ class UserController {
         });
 
         // Chuyển hướng sau khi đăng nhập thành công
-        return res.redirect(process.env.FRONTEND_URL || '/');
+        return res.redirect(process.env.FRONTEND_URL || 'https://smoking-cessation-support-platform-liart.vercel.app');
       } catch (error) {
         return BAD_REQUEST(res, error.message);
       }
