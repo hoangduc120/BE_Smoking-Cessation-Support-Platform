@@ -7,8 +7,6 @@ router.post('/create-payment-url', authMiddleware, restrictTo('user', 'admin'), 
 
 router.get('/vnpay-callback', paymentController.handleVnpayCallBack);
 
-router.post('/momo-callback', paymentController.handleMomoCallBack);
-
 router.get('/quick-fix', paymentController.quickFixPayment);
 
 router.get('/quick-fix-vnpay', paymentController.quickFixVnpayPayment);
