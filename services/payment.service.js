@@ -33,7 +33,7 @@ class PaymentService {
                 vnp_IpAddr: ipAddr,
                 vnp_Locale: locale,
                 vnp_OrderType: ProductCode.Other,
-                vnp_ReturnUrl: process.env.VNPAY_RETURN_URL,
+                vnp_ReturnUrl: process.env.VNPAY_RETURN_URL || 'https://smoking-cessation-support-platform-liart.vercel.app/payment/success',
             }
             const paymentUrl = vnpay.buildPaymentUrl(paymentData);
             return paymentUrl;
