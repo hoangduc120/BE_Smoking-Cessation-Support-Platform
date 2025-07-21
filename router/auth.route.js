@@ -49,7 +49,7 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
     });
 
 
-    return res.redirect(`http://localhost:5173?accessToken=${accessToken}`);
+    return res.redirect(`${process.env.CLIENT_URL || 'https://smoking-cessation-support-platform-liart.vercel.app'}?accessToken=${accessToken}`);
   } catch (error) {
     next(error);
   }
