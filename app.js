@@ -21,11 +21,27 @@ app.use(cookieParser()); // Must be before CORS and routes
 
 // CORS configuration
 const corsOptions = {
-    origin: process.env.CLIENT_URL || "*",
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    origin: [
+        process.env.CLIENT_URL || "*",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://localhost:5173",
+        "https://smoking-cessation-support-platform-liart.vercel.app",
+        "https://smoking-cessation-support-platform-liart.vercel.app/"
+    ],
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
     optionsSuccessStatus: 204,
-    allowedHeaders: ["Authorization", "Content-Type"],
+    allowedHeaders: [
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers"
+    ],
     credentials: true,
+    preflightContinue: false,
 };
 app.use(cors(corsOptions));
 
@@ -46,7 +62,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Swagger UI route
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec)); 
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 const appRoutes = require("./router/appRoutes");
