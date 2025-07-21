@@ -6,6 +6,7 @@ const {
     orderInfo,
     redirectUrl,
     ipnUrl,
+    apiEndpoint,
     requestType,
     extraData,
     autoCapture,
@@ -156,7 +157,7 @@ class PaymentService {
 
             const rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderIdMomo}&orderInfo=${orderInfo}&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`
             const signature = crypto.createHmac('sha256', secretKey).update(rawSignature).digest('hex')
-            const endpoint = process.env.MOMO_API_ENDPOINT;
+            const endpoint = apiEndpoint;
 
             const requestBody = {
                 partnerCode,
