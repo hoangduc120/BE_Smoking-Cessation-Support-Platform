@@ -12,6 +12,7 @@ const MembershipScheduler = require("./utils/membershipScheduler");
 const { startFailedPlansChecker } = require("./cron/checkFailedPlans");
 const { startDailyReminders } = require("./cron/dailyReminders");
 const { startExpiredStagesChecker } = require("./cron/checkExpiredStages");
+const { startExpiredPaymentsChecker } = require("./cron/checkExpiredPayments");
 
 const app = express();
 
@@ -74,6 +75,7 @@ MembershipScheduler.initScheduler();
 startFailedPlansChecker();
 startDailyReminders();
 startExpiredStagesChecker();
+startExpiredPaymentsChecker();
 
 // Error handling
 app.use((req, res, next) => {
