@@ -91,11 +91,35 @@ class QuitProgressService {
 
             const completionPercentage = (checkInCount / totalDays) * 100;
 
-            if (completionPercentage >= 75) {
+            // Check if user meets check-in requirement (75%)
+            const meetsCheckInRequirement = completionPercentage >= 75;
+
+            if (!meetsCheckInRequirement) {
+                return; // Don't complete if check-in requirement not met
+            }
+
+            // Check cigarettes target - get latest progress entry
+            const latestProgress = await QuitProgress.findOne({
+                userId,
+                stageId
+            }).sort({ date: -1 });
+
+            let meetsCigaretteTarget = true;
+
+            // If there's a target and latest progress exists, check if cigarettes smoked meets target
+            if (stage.targetCigarettesPerDay !== undefined && latestProgress) {
+                meetsCigaretteTarget = latestProgress.cigarettesSmoked <= stage.targetCigarettesPerDay;
+            }
+
+            // Complete stage only if both conditions are met
+            if (meetsCheckInRequirement && meetsCigaretteTarget) {
                 await quitPlanService.completeStage(stageId, userId);
+                console.log(`Stage ${stageId} completed: Check-in: ${completionPercentage.toFixed(1)}%, Cigarettes: ${latestProgress?.cigarettesSmoked || 0}/${stage.targetCigarettesPerDay}`);
             } else {
+                console.log(`Stage ${stageId} not completed: Check-in: ${completionPercentage.toFixed(1)}% (${meetsCheckInRequirement ? 'OK' : 'NOT OK'}), Cigarettes: ${latestProgress?.cigarettesSmoked || 0}/${stage.targetCigarettesPerDay} (${meetsCigaretteTarget ? 'OK' : 'NOT OK'})`);
             }
         } catch (error) {
+            console.error('Error in checkAndCompleteStage:', error);
         }
     }
 
@@ -171,6 +195,21 @@ class QuitProgressService {
                 stageStatus = 'in_progress';
             }
 
+            // Check cigarette target compliance
+            const latestProgress = await QuitProgress.findOne({
+                userId,
+                stageId
+            }).sort({ date: -1 });
+
+            const meetsCheckInRequirement = completionPercentage >= 75;
+            let meetsCigaretteTarget = true;
+
+            if (stage.targetCigarettesPerDay !== undefined && latestProgress) {
+                meetsCigaretteTarget = latestProgress.cigarettesSmoked <= stage.targetCigarettesPerDay;
+            }
+
+            const canCompleteStage = meetsCheckInRequirement && meetsCigaretteTarget;
+
             return {
                 stage: stage,
                 totalDays,
@@ -179,13 +218,31 @@ class QuitProgressService {
                 completionPercentage: completionPercentage,
                 isCompleted: stage.completed,
                 stageStatus: stageStatus,
-                canComplete: completionPercentage >= 75,
+                canComplete: canCompleteStage,
                 checkInsRequiredForCompletion: checkInsRequiredForCompletion,
                 checkInsUntilCanComplete: checkInsUntilCanComplete,
                 progressEntries,
                 checkInRate: `${checkInCount}/${totalDays}`,
                 successThreshold: '75%',
-                isEligibleForCompletion: checkInCount >= checkInsRequiredForCompletion
+                isEligibleForCompletion: checkInCount >= checkInsRequiredForCompletion,
+                cigaretteTargetInfo: {
+                    targetCigarettesPerDay: stage.targetCigarettesPerDay,
+                    latestCigarettesSmoked: latestProgress?.cigarettesSmoked || null,
+                    meetsCigaretteTarget: meetsCigaretteTarget,
+                    hasProgressEntries: !!latestProgress
+                },
+                completionRequirements: {
+                    checkInRequirement: {
+                        met: meetsCheckInRequirement,
+                        current: completionPercentage,
+                        required: 75
+                    },
+                    cigaretteRequirement: {
+                        met: meetsCigaretteTarget,
+                        current: latestProgress?.cigarettesSmoked || null,
+                        target: stage.targetCigarettesPerDay
+                    }
+                }
             };
         } catch (error) {
             throw new Error(`Error getting stage progress stats: ${error.message}`);
@@ -354,16 +411,56 @@ class QuitProgressService {
             const completionPercentage = (checkInCount / totalDays) * 100;
             const requiredPercentage = 75;
 
+            // Check cigarette target compliance
+            const latestProgress = await QuitProgress.findOne({
+                userId,
+                stageId
+            }).sort({ date: -1 });
+
+            const meetsCheckInRequirement = completionPercentage >= requiredPercentage;
+            let meetsCigaretteTarget = true;
+
+            if (stage.targetCigarettesPerDay !== undefined && latestProgress) {
+                meetsCigaretteTarget = latestProgress.cigarettesSmoked <= stage.targetCigarettesPerDay;
+            }
+
+            const canComplete = meetsCheckInRequirement && meetsCigaretteTarget;
+
+            let reason;
+            if (canComplete) {
+                reason = 'Eligible for completion';
+            } else {
+                const reasons = [];
+                if (!meetsCheckInRequirement) {
+                    reasons.push(`Need ${Math.ceil(totalDays * 0.75) - checkInCount} more check-ins`);
+                }
+                if (!meetsCigaretteTarget) {
+                    reasons.push(`Latest cigarettes smoked (${latestProgress?.cigarettesSmoked || 0}) exceeds target (${stage.targetCigarettesPerDay})`);
+                }
+                reason = reasons.join(' and ');
+            }
+
             return {
-                canComplete: completionPercentage >= requiredPercentage,
+                canComplete,
                 checkInCount,
                 totalDays,
                 completionPercentage: Math.round(completionPercentage * 10) / 10,
                 requiredPercentage,
                 checkInsNeeded: Math.max(0, Math.ceil(totalDays * 0.75) - checkInCount),
-                reason: completionPercentage >= requiredPercentage
-                    ? 'Eligible for completion'
-                    : `Need ${Math.ceil(totalDays * 0.75) - checkInCount} more check-ins`
+                reason,
+                requirements: {
+                    checkIn: {
+                        met: meetsCheckInRequirement,
+                        current: completionPercentage,
+                        required: requiredPercentage
+                    },
+                    cigarettes: {
+                        met: meetsCigaretteTarget,
+                        current: latestProgress?.cigarettesSmoked || null,
+                        target: stage.targetCigarettesPerDay,
+                        hasData: !!latestProgress
+                    }
+                }
             };
         } catch (error) {
             throw new Error(`Error checking stage completion eligibility: ${error.message}`);
@@ -431,11 +528,24 @@ class QuitProgressService {
         const checkInCount = progresses.length;
         const completionPercentage = (checkInCount / totalDays) * 100;
 
+        // Check cigarette target compliance
+        const latestProgress = progresses.length > 0 ? progresses[progresses.length - 1] : null;
+        const meetsCheckInRequirement = completionPercentage >= 75;
+        let meetsCigaretteTarget = true;
+
+        if (stage.targetCigarettesPerDay !== undefined && latestProgress) {
+            meetsCigaretteTarget = latestProgress.cigarettesSmoked <= stage.targetCigarettesPerDay;
+        }
+
+        const canCompleteStage = meetsCheckInRequirement && meetsCigaretteTarget;
+
         return {
             stage: {
                 _id: stage._id,
                 stage_name: stage.stage_name,
                 description: stage.description,
+                goal: stage.goal,
+                targetCigarettesPerDay: stage.targetCigarettesPerDay,
                 duration: stage.duration,
                 completed: stage.completed
             },
@@ -445,8 +555,26 @@ class QuitProgressService {
                 checkInCount,
                 completionPercentage: Math.round(completionPercentage * 10) / 10,
                 remainingCheckIns: Math.max(0, totalDays - checkInCount),
-                canComplete: completionPercentage >= 75,
-                checkInsNeeded: Math.max(0, Math.ceil(totalDays * 0.75) - checkInCount)
+                canComplete: canCompleteStage,
+                checkInsNeeded: Math.max(0, Math.ceil(totalDays * 0.75) - checkInCount),
+                cigaretteTargetInfo: {
+                    targetCigarettesPerDay: stage.targetCigarettesPerDay,
+                    latestCigarettesSmoked: latestProgress?.cigarettesSmoked || null,
+                    meetsCigaretteTarget: meetsCigaretteTarget,
+                    hasProgressEntries: progresses.length > 0
+                },
+                completionRequirements: {
+                    checkInRequirement: {
+                        met: meetsCheckInRequirement,
+                        current: completionPercentage,
+                        required: 75
+                    },
+                    cigaretteRequirement: {
+                        met: meetsCigaretteTarget,
+                        current: latestProgress?.cigarettesSmoked || null,
+                        target: stage.targetCigarettesPerDay
+                    }
+                }
             }
         };
     }

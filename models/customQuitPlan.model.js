@@ -21,6 +21,19 @@ var customQuitPlanSchema = new mongoose.Schema({
         type: String,
         trim: true,
     },
+    goal: {
+        type: String,
+        required: true,
+        trim: true,
+        default: "Custom quit smoking plan based on personal needs"
+    },
+    targetCigarettesPerDay: {
+        type: Number,
+        required: true,
+        min: 0,
+        max: 100,
+        default: 0
+    },
     rules: [{
         rule: {
             type: String,

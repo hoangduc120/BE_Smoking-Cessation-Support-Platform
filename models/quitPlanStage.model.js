@@ -13,6 +13,19 @@ const quitPlanStageSchema = new mongoose.Schema({
   description: {
     type: String,
   },
+  goal: {
+    type: String,
+    required: true,
+    trim: true,
+    default: "Reduce smoking or maintain abstinence"
+  },
+  targetCigarettesPerDay: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 100,
+    default: 0
+  },
   order_index: {
     type: Number,
     required: true,

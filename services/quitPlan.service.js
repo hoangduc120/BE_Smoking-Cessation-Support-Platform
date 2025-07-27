@@ -798,7 +798,11 @@ class QuitPlanService {
         templateId: null,
         status: 'ongoing',
         startDate,
-        endDate
+        endDate,
+        // Use goal and targetCigarettesPerDay from custom request if not provided in quitPlanData
+        goal: quitPlanData.goal || request.goal || "Custom quit smoking plan",
+        targetCigarettesPerDay: quitPlanData.targetCigarettesPerDay !== undefined ?
+          quitPlanData.targetCigarettesPerDay : request.targetCigarettesPerDay || 0
       });
       await quitPlan.save();
 

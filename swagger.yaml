@@ -2652,8 +2652,10 @@ paths:
             schema:
               $ref: '#/components/schemas/QuitPlanCreateRequest'
             example:
-              title: "Kế hoạch cai thuốc 30 ngày"
-              reason: "Cải thiện sức khỏe và tiết kiệm chi phí"
+              title: "Kế hoạch cai thuốc 30 ngày - Progressive Reduction"
+              reason: "Cải thiện sức khỏe và tiết kiệm chi phí thông qua giảm dần"
+              goal: "Bỏ thuốc lá hoàn toàn thông qua quá trình giảm dần: 20→15→10→5→0 điếu"
+              targetCigarettesPerDay: 0
               duration: 30
               image: "https://example.com/plan-image.jpg"
         required: true
@@ -2905,10 +2907,12 @@ paths:
             schema:
               $ref: '#/components/schemas/QuitPlanStageCreateRequest'
             example:
-              stage_name: "Giai đoạn 1: Giảm dần"
-              description: "Giảm 50% lượng thuốc lá"
+              stage_name: "Week 1: Giảm xuống 15 điếu/ngày"
+              description: "Giai đoạn đầu tiên - Giảm từ 20 xuống 15 điếu/ngày"
+              goal: "Giảm từ 20 điếu hiện tại xuống 15 điếu mỗi ngày"
+              targetCigarettesPerDay: 15
               order_index: 1
-              duration: 10
+              duration: 7
         required: true
       responses:
         '200':
@@ -3796,18 +3800,20 @@ paths:
             schema:
               $ref: '#/components/schemas/CustomQuitPlanCreateRequest'
             example:
-              title: "Kế hoạch cai thuốc lá cá nhân"
-              description: "Tôi muốn một kế hoạch phù hợp với lịch làm việc của mình"
+              title: "Kế hoạch cá nhân: Night Shift 25→15→0 điếu"
+              description: "Tôi làm ca đêm, hút 25 điếu/ngày, cần kế hoạch giảm dần phù hợp"
+              goal: "Bỏ thuốc lá phù hợp ca đêm: 25→15→0 điếu trong 3 tuần"
+              targetCigarettesPerDay: 0
               rules:
                 - rule: "daily"
-                  value: 5
-                  description: "Giảm 5 điếu mỗi ngày"
+                  value: "10"
+                  description: "Giảm 10 điếu trong 2 tuần đầu (25→15)"
                 - rule: "duration"
-                  value: 30
-                  description: "Hoàn thành trong 30 ngày"
+                  value: "21"
+                  description: "Hoàn thành trong 3 tuần (21 ngày)"
                 - rule: "specificGoal"
-                  value: "quit_completely"
-                  description: "Mục tiêu: Bỏ thuốc hoàn toàn"
+                  value: "night_shift_friendly"
+                  description: "Kế hoạch phù hợp với ca đêm và stress"
         required: true
       responses:
         '200':
@@ -3974,24 +3980,30 @@ paths:
                       createdAt: '2024-01-10T09:00:00.000Z'
                     quitPlan:
                       _id: 'plan_60f7b3b3b3b3b3b3b3b3b3b5'
-                      title: 'Kế hoạch được tùy chỉnh'
-                      reason: 'Phù hợp với ca làm đêm'
+                      title: 'Kế hoạch Night Shift Custom: 25→15→0 điếu'
+                      reason: 'Phù hợp với ca làm đêm và stress môi trường'
+                      goal: 'Bỏ thuốc lá phù hợp ca đêm: 25→15→0 điếu trong 3 tuần'
+                      targetCigarettesPerDay: 0
                       status: 'ongoing'
                       startDate: '2024-01-15T10:30:00.000Z'
                       endDate: '2024-02-05T10:30:00.000Z'
                       duration: 21
                     stages:
                       - _id: 'stage_60f7b3b3b3b3b3b3b3b3b3b6'
-                        stage_name: 'Giai đoạn 1: Giảm dần'
-                        description: 'Giảm từ 15 xuống 10 điếu/ngày'
+                        stage_name: 'Tuần 1-2: Giảm từ 25 xuống 15 điếu'
+                        description: 'Giảm từ 25 xuống 15 điếu/ngày phù hợp ca đêm'
+                        goal: 'Giảm từ 25 điếu hiện tại xuống 15 điếu mỗi ngày'
+                        targetCigarettesPerDay: 15
                         order_index: 1
                         duration: 10
                         completed: true
                         start_date: '2024-01-15T00:00:00.000Z'
                         end_date: '2024-01-24T23:59:59.999Z'
                       - _id: 'stage_60f7b3b3b3b3b3b3b3b3b3b7'
-                        stage_name: 'Giai đoạn 2: Bỏ hoàn toàn'
-                        description: 'Ngừng hút thuốc hoàn toàn'
+                        stage_name: 'Tuần 3: Bỏ hoàn toàn'
+                        description: 'Ngừng hút thuốc hoàn toàn - 0 điếu/ngày'
+                        goal: 'Bỏ thuốc lá hoàn toàn phù hợp với lịch ca đêm'
+                        targetCigarettesPerDay: 0
                         order_index: 2
                         duration: 11
                         completed: false
@@ -4052,17 +4064,23 @@ paths:
               $ref: '#/components/schemas/ApproveCustomQuitPlanRequest'
             example:
               quitPlanData:
-                title: "Kế hoạch cá nhân cho User"
-                reason: "Kế hoạch được tùy chỉnh theo yêu cầu"
+                title: "Kế hoạch cá nhân cho User - Custom Progressive"
+                reason: "Kế hoạch được tùy chỉnh theo yêu cầu và lịch làm việc"
+                goal: "Bỏ thuốc lá từ từ phù hợp với ca làm việc: 20→10→0 điếu"
+                targetCigarettesPerDay: 0
                 duration: 30
                 image: "https://example.com/custom-plan.jpg"
               stagesData:
-                - stage_name: "Giai đoạn 1: Giảm dần"
-                  description: "Giảm 50% lượng thuốc lá"
+                - stage_name: "Tuần 1-2: Giảm xuống 10 điếu/ngày"
+                  description: "Giảm từ 20 xuống 10 điếu/ngày"
+                  goal: "Giảm từ 20 điếu xuống 10 điếu mỗi ngày"
+                  targetCigarettesPerDay: 10
                   order_index: 1
                   duration: 15
-                - stage_name: "Giai đoạn 2: Bỏ hoàn toàn"
+                - stage_name: "Tuần 3-4: Bỏ hoàn toàn"
                   description: "Ngừng hút thuốc hoàn toàn"
+                  goal: "Bỏ thuốc lá hoàn toàn - 0 điếu/ngày"
+                  targetCigarettesPerDay: 0
                   order_index: 2
                   duration: 15
         required: true
@@ -6827,10 +6845,20 @@ components:
           description: 'ID of the original template plan (only when user registers from template)'
         title:
           type: string
-          example: 'Kế hoạch cai thuốc 30 ngày'
+          example: 'Kế hoạch cai thuốc 30 ngày - Progressive Reduction'
         reason:
           type: string
-          example: 'Cải thiện sức khỏe và tiết kiệm chi phí'
+          example: 'Cải thiện sức khỏe và tiết kiệm chi phí thông qua giảm dần'
+        goal:
+          type: string
+          example: 'Bỏ thuốc lá hoàn toàn thông qua quá trình giảm dần: 20→15→10→5→0 điếu'
+          description: 'Mục tiêu tổng thể của kế hoạch'
+        targetCigarettesPerDay:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 0
+          description: 'Số lượng điếu thuốc mục tiêu cuối cùng (0 = bỏ hoàn toàn)'
         image:
           type: string
           nullable: true
@@ -6880,16 +6908,28 @@ components:
         - coachId
         - title
         - reason
+        - goal
+        - targetCigarettesPerDay
         - status
     QuitPlanCreateRequest:
       type: object
       properties:
         title:
           type: string
-          example: 'Kế hoạch cai thuốc 30 ngày'
+          example: 'Kế hoạch cai thuốc 30 ngày progressive'
         reason:
           type: string
-          example: 'Cải thiện sức khỏe và tiết kiệm chi phí'
+          example: 'Cải thiện sức khỏe và tiết kiệm chi phí thông qua giảm dần'
+        goal:
+          type: string
+          example: 'Bỏ thuốc lá hoàn toàn thông qua quá trình giảm dần trong 30 ngày'
+          description: 'Mục tiêu tổng thể của kế hoạch'
+        targetCigarettesPerDay:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 0
+          description: 'Số lượng điếu thuốc mục tiêu cuối cùng (0 = bỏ hoàn toàn)'
         image:
           type: string
           nullable: true
@@ -6903,16 +6943,28 @@ components:
       required:
         - title
         - reason
+        - goal
+        - targetCigarettesPerDay
         - duration
     QuitPlanUpdateRequest:
       type: object
       properties:
         title:
           type: string
-          example: 'Kế hoạch cai thuốc cập nhật'
+          example: 'Kế hoạch cai thuốc 35 ngày - Progressive Reduction (Updated)'
         reason:
           type: string
-          example: 'Lý do cập nhật'
+          example: 'Cải thiện sức khỏe với timeline dài hơn'
+        goal:
+          type: string
+          example: 'Bỏ thuốc lá hoàn toàn: 20→15→10→5→0 điếu trong 35 ngày'
+          description: 'Mục tiêu tổng thể của kế hoạch'
+        targetCigarettesPerDay:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 0
+          description: 'Số lượng điếu thuốc mục tiêu cuối cùng (0 = bỏ hoàn toàn)'
         image:
           type: string
           nullable: true
@@ -6938,10 +6990,20 @@ components:
           example: '12345'
         stage_name:
           type: string
-          example: 'Giai đoạn 1: Giảm dần'
+          example: 'Week 1: Giảm xuống 15 điếu/ngày'
         description:
           type: string
-          example: 'Giảm 50% lượng thuốc lá'
+          example: 'Giai đoạn đầu tiên - Giảm từ 20 xuống 15 điếu/ngày'
+        goal:
+          type: string
+          example: 'Giảm từ 20 điếu hiện tại xuống 15 điếu mỗi ngày'
+          description: 'Mục tiêu cụ thể của stage này'
+        targetCigarettesPerDay:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 15
+          description: 'Số lượng điếu thuốc mục tiêu mỗi ngày cho stage này'
         order_index:
           type: integer
           example: 1
@@ -6977,6 +7039,8 @@ components:
       required:
         - quitPlanId
         - stage_name
+        - goal
+        - targetCigarettesPerDay
         - order_index
         - duration
     QuitPlanStageCreateRequest:
@@ -6984,13 +7048,23 @@ components:
       properties:
         stage_name:
           type: string
-          example: 'Giai đoạn 1: kudou'
+          example: 'Week 2: Giảm xuống 10 điếu/ngày'
         description:
           type: string
-          example: 'Giảm 50% lượng thuốc lá'
+          example: 'Giai đoạn thứ hai - Giảm từ 15 xuống 10 điếu/ngày'
+        goal:
+          type: string
+          example: 'Giảm từ 15 điếu xuống 10 điếu mỗi ngày'
+          description: 'Mục tiêu cụ thể của stage này'
+        targetCigarettesPerDay:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 10
+          description: 'Số lượng điếu thuốc mục tiêu mỗi ngày cho stage này'
         order_index:
           type: integer
-          example: 1
+          example: 2
         duration:
           type: integer
           minimum: 1
@@ -6999,6 +7073,8 @@ components:
           description: 'Số ngày của giai đoạn này'
       required:
         - stage_name
+        - goal
+        - targetCigarettesPerDay
         - order_index
         - duration
       additionalProperties: false
@@ -7008,10 +7084,20 @@ components:
       properties:
         stage_name:
           type: string
-          example: 'Giai đoạn 1 cập nhật'
+          example: 'Week 3: Giảm xuống 5 điếu/ngày (Updated)'
         description:
           type: string
-          example: 'Mô tả cập nhật'
+          example: 'Giai đoạn thứ ba được cập nhật - Giảm từ 10 xuống 5 điếu/ngày'
+        goal:
+          type: string
+          example: 'Giảm từ 10 điếu xuống 5 điếu mỗi ngày'
+          description: 'Mục tiêu cụ thể của stage này'
+        targetCigarettesPerDay:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 5
+          description: 'Số lượng điếu thuốc mục tiêu mỗi ngày cho stage này'
         order_index:
           type: integer
           example: 1
@@ -7286,6 +7372,12 @@ components:
           items:
             $ref: '#/components/schemas/QuitProgress'
           description: List of all progress entries for this stage
+        cigaretteTargetInfo:
+          $ref: '#/components/schemas/CigaretteTargetInfo'
+          description: Information about cigarette target compliance
+        completionRequirements:
+          $ref: '#/components/schemas/CompletionRequirements'
+          description: Detailed completion requirements status
       required:
         - stage
         - totalDays
@@ -7300,6 +7392,8 @@ components:
         - daysRequiredForCompletion
         - daysUntilCanComplete
         - progressEntries
+        - cigaretteTargetInfo
+        - completionRequirements
     StageProgressByStageResponse:
       type: object
       properties:
@@ -7322,10 +7416,10 @@ components:
               example: 'stage-12345'
             stage_name:
               type: string
-              example: 'Giai đoạn 1: Giảm dần'
+              example: 'Week 1: Giảm xuống 15 điếu/ngày'
             description:
               type: string
-              example: 'Giảm từ 20 xuống 15 điếu/ngày'
+              example: 'Giai đoạn đầu tiên - Giảm từ 20 xuống 15 điếu/ngày'
             duration:
               type: integer
               example: 10
@@ -7418,6 +7512,12 @@ components:
           type: integer
           example: 0
           description: Number of additional check-ins needed to reach 75% completion threshold
+        cigaretteTargetInfo:
+          $ref: '#/components/schemas/CigaretteTargetInfo'
+          description: Information about cigarette target compliance
+        completionRequirements:
+          $ref: '#/components/schemas/CompletionRequirements'
+          description: Detailed completion requirements status
       required:
         - totalDays
         - checkInCount
@@ -7425,6 +7525,8 @@ components:
         - remainingCheckIns
         - canComplete
         - checkInsNeeded
+        - cigaretteTargetInfo
+        - completionRequirements
     PlanDurationStats:
       type: object
       properties:
@@ -7454,10 +7556,10 @@ components:
                 example: 'stage-12345'
               stage_name:
                 type: string
-                example: 'Giai đoạn 1: Giảm dần'
+                example: 'Week 1: Giảm xuống 15 điếu/ngày'
               duration:
                 type: integer
-                example: 10
+                example: 7
               order_index:
                 type: integer
                 example: 1
@@ -7468,7 +7570,90 @@ components:
         - remainingDuration
         - stagesCount
         - stages
-        - progressEntries
+    CigaretteTargetInfo:
+      type: object
+      properties:
+        targetCigarettesPerDay:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 15
+          description: 'Số lượng điếu thuốc mục tiêu mỗi ngày cho stage hiện tại'
+        latestCigarettesSmoked:
+          type: integer
+          nullable: true
+          minimum: 0
+          example: 12
+          description: 'Số lượng điếu thuốc đã hút trong lần cập nhật cuối cùng'
+        meetsCigaretteTarget:
+          type: boolean
+          example: true
+          description: 'Có đạt mục tiêu số lượng điếu thuốc hay không (12 ≤ 15 = true)'
+        hasProgressEntries:
+          type: boolean
+          example: true
+          description: 'Có entries tiến trình hay không'
+      required:
+        - targetCigarettesPerDay
+        - latestCigarettesSmoked
+        - meetsCigaretteTarget
+        - hasProgressEntries
+    CompletionRequirements:
+      type: object
+      properties:
+        checkInRequirement:
+          $ref: '#/components/schemas/CheckInRequirement'
+          description: 'Yêu cầu về check-in (75%)'
+        cigaretteRequirement:
+          $ref: '#/components/schemas/CigaretteRequirement'
+          description: 'Yêu cầu về số lượng điếu thuốc'
+      required:
+        - checkInRequirement
+        - cigaretteRequirement
+    CheckInRequirement:
+      type: object
+      properties:
+        met:
+          type: boolean
+          example: true
+          description: 'Có đáp ứng yêu cầu check-in hay không'
+        current:
+          type: number
+          format: float
+          example: 85.7
+          description: 'Tỷ lệ check-in hiện tại (%)'
+        required:
+          type: number
+          format: float
+          example: 75.0
+          description: 'Tỷ lệ check-in yêu cầu (%)'
+      required:
+        - met
+        - current
+        - required
+    CigaretteRequirement:
+      type: object
+      properties:
+        met:
+          type: boolean
+          example: true
+          description: 'Có đáp ứng yêu cầu số lượng điếu thuốc hay không'
+        current:
+          type: integer
+          nullable: true
+          minimum: 0
+          example: 12
+          description: 'Số lượng điếu thuốc đã hút trong lần cập nhật cuối'
+        target:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 15
+          description: 'Số lượng điếu thuốc mục tiêu cho stage hiện tại'
+      required:
+        - met
+        - current
+        - target
     Blog:
       type: object
       properties:
@@ -8141,13 +8326,23 @@ components:
           description: Coach assigned to handle the request (null for pending requests)
         title:
           type: string
-          example: 'Kế hoạch cai thuốc lá cá nhân'
+          example: 'Kế hoạch cá nhân: Ca đêm 30→15→0 điếu'
           description: Title of the custom quit plan request
         description:
           type: string
           nullable: true
-          example: 'Tôi muốn một kế hoạch phù hợp với lịch làm việc của mình'
+          example: 'Tôi làm ca đêm và cần kế hoạch giảm dần phù hợp với lịch nghỉ'
           description: Detailed description of the user's requirements
+        goal:
+          type: string
+          example: 'Bỏ thuốc lá hoàn toàn qua 2 giai đoạn: 30→15→0 điếu, phù hợp ca đêm'
+          description: Overall goal of the custom quit plan
+        targetCigarettesPerDay:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 0
+          description: Target number of cigarettes per day (0 = complete cessation)
         rules:
           type: array
           items:
@@ -8222,13 +8417,23 @@ components:
       properties:
         title:
           type: string
-          example: 'Kế hoạch cai thuốc lá cá nhân'
+          example: 'Kế hoạch cá nhân: Heavy Smoker 40→20→0 điếu'
           description: Title for the custom quit plan request
         description:
           type: string
           nullable: true
-          example: 'Tôi muốn một kế hoạch phù hợp với lịch làm việc của mình'
+          example: 'Tôi hút 40 điếu/ngày, cần kế hoạch giảm dần từ từ trong 8 tuần'
           description: Optional detailed description of user requirements
+        goal:
+          type: string
+          example: 'Giảm từ 40 điếu xuống 0 điếu trong 8 tuần: 40→30→20→10→0'
+          description: Overall goal of the custom quit plan
+        targetCigarettesPerDay:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 0
+          description: Target number of cigarettes per day (0 = complete cessation)
         rules:
           type: array
           items:
@@ -8260,6 +8465,8 @@ components:
           description: Array of custom rules that define the user's personalized requirements
       required:
         - title
+        - goal
+        - targetCigarettesPerDay
         - rules
     ApproveCustomQuitPlanRequest:
       type: object
@@ -8270,18 +8477,28 @@ components:
           properties:
             title:
               type: string
-              example: 'Kế hoạch cá nhân cho User'
+              example: 'Kế hoạch Heavy Smoker - Coach Approved: 40→20→10→0'
               description: Title for the approved quit plan
             reason:
               type: string
-              example: 'Kế hoạch được tùy chỉnh theo yêu cầu của user'
+              example: 'Kế hoạch giảm dần phù hợp với tình trạng hút nhiều của user'
               description: Reason or motivation for this custom plan
+            goal:
+              type: string
+              example: 'Giảm từ 40 điếu xuống 0 trong 8 tuần với support đặc biệt'
+              description: Overall goal of the custom quit plan
+            targetCigarettesPerDay:
+              type: integer
+              minimum: 0
+              maximum: 100
+              example: 0
+              description: Target number of cigarettes per day for the plan
             duration:
               type: integer
               minimum: 1
               maximum: 365
-              example: 30
-              description: Total duration of the plan in days
+              example: 56
+              description: Total duration of the plan in days (8 weeks)
             image:
               type: string
               nullable: true
@@ -8290,6 +8507,8 @@ components:
           required:
             - title
             - reason
+            - goal
+            - targetCigarettesPerDay
             - duration
           description: Data for creating the actual quit plan
         stagesData:
@@ -8299,12 +8518,22 @@ components:
             properties:
               stage_name:
                 type: string
-                example: 'Giai đoạn 1: Giảm dần'
+                example: 'Tuần 1-2: Giảm từ 30 xuống 20 điếu'
                 description: Name of the stage
               description:
                 type: string
-                example: 'Giảm 50% lượng thuốc lá'
+                example: 'Giai đoạn trung gian - Giảm từ 30 xuống 20 điếu/ngày'
                 description: Description of what to achieve in this stage
+              goal:
+                type: string
+                example: 'Giảm từ 30 điếu xuống 20 điếu mỗi ngày'
+                description: Specific goal for this stage
+              targetCigarettesPerDay:
+                type: integer
+                minimum: 0
+                maximum: 100
+                example: 20
+                description: Target number of cigarettes per day for this stage
               order_index:
                 type: integer
                 minimum: 1
@@ -8317,6 +8546,8 @@ components:
                 description: Duration of this stage in days
             required:
               - stage_name
+              - goal
+              - targetCigarettesPerDay
               - order_index
               - duration
           description: Array of stages to create for the approved plan (optional)
@@ -8329,7 +8560,7 @@ components:
         reason:
           type: string
           nullable: true
-          example: 'Yêu cầu không khả thi với thời gian ngắn. Vui lòng thử lại với kế hoạch dài hạn hơn.'
+          example: 'Mục tiêu giảm quá nhanh (25→0 trong 1 tuần) không an toàn. Đề xuất kế hoạch 3-4 tuần với giai đoạn trung gian.'
           description: Optional reason for rejecting the custom request. This will be saved and can be shown to the user.
     ApprovedCustomQuitPlan:
       type: object
@@ -8345,13 +8576,23 @@ components:
               description: Unique identifier of the custom request
             title:
               type: string
-              example: 'Kế hoạch cá nhân cho công việc'
+              example: 'Kế hoạch cá nhân: Night Shift 25→15→0 điếu'
               description: Title of the custom quit plan request
             description:
               type: string
               nullable: true
-              example: 'Kế hoạch phù hợp với lịch làm việc ca đêm'
+              example: 'Tôi làm ca đêm, hút 25 điếu/ngày, cần kế hoạch giảm dần phù hợp'
               description: Description of user requirements
+            goal:
+              type: string
+              example: 'Bỏ thuốc lá phù hợp ca đêm: 25→15→0 điếu trong 3 tuần'
+              description: Overall goal of the custom quit plan
+            targetCigarettesPerDay:
+              type: integer
+              minimum: 0
+              maximum: 100
+              example: 0
+              description: Target number of cigarettes per day
             rules:
               type: array
               items:
@@ -8363,10 +8604,10 @@ components:
                     example: 'daily'
                   value:
                     type: string
-                    example: '3'
+                    example: '10'
                   description:
                     type: string
-                    example: 'Giảm 3 điếu mỗi ngày'
+                    example: 'Giảm 10 điếu trong 2 tuần đầu (25→15)'
                 required:
                   - rule
                   - value
@@ -8855,19 +9096,37 @@ components:
               $ref: '#/components/schemas/ApproveCustomQuitPlanRequest'
             example:
               quitPlanData:
-                title: "Kế hoạch cá nhân cho User"
-                reason: "Kế hoạch được tùy chỉnh theo yêu cầu"
-                duration: 30
-                image: "https://example.com/custom-plan.jpg"
+                title: "Kế hoạch Heavy Smoker - Coach Approved: 40→20→10→0"
+                reason: "Kế hoạch giảm dần phù hợp với tình trạng hút nhiều của user"
+                goal: "Giảm từ 40 điếu xuống 0 trong 8 tuần với support đặc biệt"
+                targetCigarettesPerDay: 0
+                duration: 56
+                image: "https://example.com/custom-heavy-smoker-plan.jpg"
               stagesData:
-                - stage_name: "Giai đoạn 1: Giảm dần"
-                  description: "Giảm 50% lượng thuốc lá"
+                - stage_name: "Tuần 1-2: Giảm từ 40 xuống 30 điếu"
+                  description: "Giai đoạn đầu - Giảm 25% từ 40 xuống 30 điếu/ngày"
+                  goal: "Giảm từ 40 điếu hiện tại xuống 30 điếu mỗi ngày"
+                  targetCigarettesPerDay: 30
                   order_index: 1
-                  duration: 15
-                - stage_name: "Giai đoạn 2: Bỏ hoàn toàn"
-                  description: "Ngừng hút thuốc hoàn toàn"
+                  duration: 14
+                - stage_name: "Tuần 3-4: Giảm từ 30 xuống 20 điếu"
+                  description: "Giai đoạn trung gian - Giảm xuống 20 điếu/ngày"
+                  goal: "Giảm từ 30 điếu xuống 20 điếu mỗi ngày"
+                  targetCigarettesPerDay: 20
                   order_index: 2
-                  duration: 15
+                  duration: 14
+                - stage_name: "Tuần 5-6: Giảm từ 20 xuống 10 điếu"
+                  description: "Giai đoạn tiến bộ - Giảm xuống 10 điếu/ngày"
+                  goal: "Giảm từ 20 điếu xuống 10 điếu mỗi ngày"
+                  targetCigarettesPerDay: 10
+                  order_index: 3
+                  duration: 14
+                - stage_name: "Tuần 7-8: Bỏ hoàn toàn"
+                  description: "Giai đoạn cuối - Ngừng hút thuốc hoàn toàn"
+                  goal: "Bỏ thuốc lá hoàn toàn - 0 điếu/ngày"
+                  targetCigarettesPerDay: 0
+                  order_index: 4
+                  duration: 14
         required: true
       responses:
         '200':

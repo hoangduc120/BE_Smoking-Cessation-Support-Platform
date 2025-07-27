@@ -25,6 +25,19 @@ var quitplanSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  goal: {
+    type: String,
+    required: true,
+    trim: true,
+    default: "Quit smoking completely"
+  },
+  targetCigarettesPerDay: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 100,
+    default: 0
+  },
   image: {
     type: String,
     default: null,

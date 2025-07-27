@@ -23,9 +23,24 @@ class QuitPlanController {
         return BAD_REQUEST(res, 'Only coaches can create quit plans');
       }
 
+      // Validate required fields
+      if (!quitPlanData.goal || quitPlanData.goal.trim() === '') {
+        return BAD_REQUEST(res, 'Goal is required');
+      }
+
+      if (quitPlanData.targetCigarettesPerDay === undefined || quitPlanData.targetCigarettesPerDay === null) {
+        return BAD_REQUEST(res, 'Target cigarettes per day is required');
+      }
+
+      const targetCigarettes = parseInt(quitPlanData.targetCigarettesPerDay);
+      if (isNaN(targetCigarettes) || targetCigarettes < 0 || targetCigarettes > 100) {
+        return BAD_REQUEST(res, 'Target cigarettes per day must be a number between 0 and 100');
+      }
+
       quitPlanData.userId = null;
       quitPlanData.coachId = userIdFromToken;
       quitPlanData.status = 'template';
+      quitPlanData.targetCigarettesPerDay = targetCigarettes;
 
       const quitPlan = await quitPlanService.createQuitPlan(quitPlanData);
       return OK(res, 'Quit plan created successfully', quitPlan);
@@ -76,6 +91,23 @@ class QuitPlanController {
         ...req.body,
         quitPlanId: req.params.quitPlanId
       };
+
+      // Validate required fields for stage
+      if (!stageData.goal || stageData.goal.trim() === '') {
+        return BAD_REQUEST(res, 'Stage goal is required');
+      }
+
+      if (stageData.targetCigarettesPerDay === undefined || stageData.targetCigarettesPerDay === null) {
+        return BAD_REQUEST(res, 'Target cigarettes per day is required for stage');
+      }
+
+      const targetCigarettes = parseInt(stageData.targetCigarettesPerDay);
+      if (isNaN(targetCigarettes) || targetCigarettes < 0 || targetCigarettes > 100) {
+        return BAD_REQUEST(res, 'Target cigarettes per day must be a number between 0 and 100');
+      }
+
+      stageData.targetCigarettesPerDay = targetCigarettes;
+
       const stages = await quitPlanService.createQuitPlanStage(stageData);
       return OK(res, 'Quit plan stages created successfully', stages);
     } catch (error) {
@@ -288,10 +320,26 @@ class QuitPlanController {
       if (req.user.role !== 'user') {
         return BAD_REQUEST(res, 'Only users can create custom quit plans');
       }
+
+      // Validate goal and targetCigarettesPerDay
+      if (!req.body.goal || req.body.goal.trim() === '') {
+        return BAD_REQUEST(res, 'Goal is required for custom quit plan');
+      }
+
+      if (req.body.targetCigarettesPerDay === undefined || req.body.targetCigarettesPerDay === null) {
+        return BAD_REQUEST(res, 'Target cigarettes per day is required for custom quit plan');
+      }
+
+      const targetCigarettes = parseInt(req.body.targetCigarettesPerDay);
+      if (isNaN(targetCigarettes) || targetCigarettes < 0 || targetCigarettes > 100) {
+        return BAD_REQUEST(res, 'Target cigarettes per day must be a number between 0 and 100');
+      }
+
       const requestData = {
         ...req.body,
         userId,
-        status: 'pending'
+        status: 'pending',
+        targetCigarettesPerDay: targetCigarettes
       }
       const request = await quitPlanService.createCustomQuitPlan(requestData)
       return OK(res, 'Custom quit plan request created successfully', request);
@@ -323,6 +371,20 @@ class QuitPlanController {
         return BAD_REQUEST(res, 'quitPlanData with duration is required');
       }
 
+      // Validate goal and targetCigarettesPerDay for quit plan
+      if (!quitPlanData.goal || quitPlanData.goal.trim() === '') {
+        return BAD_REQUEST(res, 'Goal is required for quit plan');
+      }
+
+      if (quitPlanData.targetCigarettesPerDay === undefined || quitPlanData.targetCigarettesPerDay === null) {
+        return BAD_REQUEST(res, 'Target cigarettes per day is required for quit plan');
+      }
+
+      const planTargetCigarettes = parseInt(quitPlanData.targetCigarettesPerDay);
+      if (isNaN(planTargetCigarettes) || planTargetCigarettes < 0 || planTargetCigarettes > 100) {
+        return BAD_REQUEST(res, 'Plan target cigarettes per day must be a number between 0 and 100');
+      }
+
       const duration = parseInt(quitPlanData.duration);
       if (isNaN(duration) || duration <= 0 || duration > 365) {
         return BAD_REQUEST(res, 'Duration must be a valid number between 1 and 365 days');
@@ -339,11 +401,27 @@ class QuitPlanController {
           return BAD_REQUEST(res, `Stage ${i + 1}: stage_name and duration are required`);
         }
 
+        // Validate goal and targetCigarettesPerDay for each stage
+        if (!stage.goal || stage.goal.trim() === '') {
+          return BAD_REQUEST(res, `Stage ${i + 1}: goal is required`);
+        }
+
+        if (stage.targetCigarettesPerDay === undefined || stage.targetCigarettesPerDay === null) {
+          return BAD_REQUEST(res, `Stage ${i + 1}: target cigarettes per day is required`);
+        }
+
+        const stageTargetCigarettes = parseInt(stage.targetCigarettesPerDay);
+        if (isNaN(stageTargetCigarettes) || stageTargetCigarettes < 0 || stageTargetCigarettes > 100) {
+          return BAD_REQUEST(res, `Stage ${i + 1}: target cigarettes per day must be a number between 0 and 100`);
+        }
+
         const stageDuration = parseInt(stage.duration);
         if (isNaN(stageDuration) || stageDuration <= 0 || stageDuration > 365) {
           return BAD_REQUEST(res, `Stage ${i + 1}: duration must be a valid number between 1 and 365 days`);
         }
 
+        // Update the stage data with validated values
+        stage.targetCigarettesPerDay = stageTargetCigarettes;
         totalStageDuration += stageDuration;
       }
 
