@@ -8,7 +8,10 @@ const initializeSocket = (app) => {
 
     const io = new Server(server, {
         cors: {
-            origin: "*",
+            origin: [
+                "*",
+                "https://smoking-cessation-support-platform-liart.vercel.app",
+            ],
             credentials: true,
         }
     });
