@@ -869,5 +869,125 @@ class QuitPlanService {
       throw new Error(`Failed to get approved custom quit plans: ${error.message}`);
     }
   }
+
+  async getAllUserPlanHistory(filters = {}) {
+    try {
+      const query = {};
+
+      // Add filters
+      if (filters.userId) query.userId = filters.userId;
+      if (filters.coachId) query.coachId = filters.coachId;
+      if (filters.status) query.status = filters.status;
+
+      // Get all quit plans (not just templates)
+      const plans = await QuitPlan.find({
+        ...query,
+        status: { $in: ['completed', 'failed', 'cancelled', 'ongoing'] }
+      })
+        .populate('userId', 'userName email')
+        .populate('coachId', 'userName email')
+        .sort({ createdAt: -1 });
+
+      // Get approved custom requests with their associated quit plans
+      const customRequestsQuery = { status: 'approved' };
+      if (filters.userId) customRequestsQuery.userId = filters.userId;
+      if (filters.coachId) customRequestsQuery.coachId = filters.coachId;
+
+      const approvedCustomRequests = await CustomQuitPlan.find(customRequestsQuery)
+        .populate('userId', 'userName email')
+        .populate('coachId', 'userName email')
+        .populate({
+          path: 'quitPlanId',
+          populate: [
+            { path: 'userId', select: 'userName email' },
+            { path: 'coachId', select: 'userName email' }
+          ]
+        })
+        .sort({ approvedAt: -1 });
+
+      // Process regular quit plans
+      const regularPlansResult = await Promise.all(
+        plans.map(async (plan) => {
+          const stages = await QuitPlanStage.find({ quitPlanId: plan._id })
+            .sort({ order_index: 1 });
+
+          const completedStages = stages.filter(stage => stage.completed);
+          const totalStages = stages.length;
+          const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
+
+          return {
+            type: 'regular',
+            quitPlan: plan,
+            stages: stages,
+            progress: {
+              completedStages: completedStages.length,
+              totalStages: totalStages,
+              completionPercentage: Math.round(completionPercentage),
+              isCompleted: plan.status === 'completed'
+            },
+            user: plan.userId,
+            coach: plan.coachId,
+            createdAt: plan.createdAt,
+            startDate: plan.startDate,
+            endDate: plan.endDate
+          };
+        })
+      );
+
+      // Process custom quit plans
+      const customPlansResult = await Promise.all(
+        approvedCustomRequests.map(async (request) => {
+          if (request.quitPlanId) {
+            const stages = await QuitPlanStage.find({ quitPlanId: request.quitPlanId._id })
+              .sort({ order_index: 1 });
+
+            const completedStages = stages.filter(stage => stage.completed);
+            const totalStages = stages.length;
+            const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
+
+            return {
+              type: 'custom',
+              customRequest: {
+                _id: request._id,
+                title: request.title,
+                description: request.description,
+                rules: request.rules,
+                status: request.status,
+                approvedAt: request.approvedAt,
+                createdAt: request.createdAt
+              },
+              quitPlan: request.quitPlanId,
+              stages: stages,
+              progress: {
+                completedStages: completedStages.length,
+                totalStages: totalStages,
+                completionPercentage: Math.round(completionPercentage),
+                isCompleted: request.quitPlanId.status === 'completed'
+              },
+              user: request.userId,
+              coach: request.coachId,
+              createdAt: request.createdAt,
+              startDate: request.quitPlanId.startDate,
+              endDate: request.quitPlanId.endDate
+            };
+          }
+          return null;
+        })
+      );
+
+      // Combine and filter results
+      const allResults = [
+        ...regularPlansResult,
+        ...customPlansResult.filter(item => item !== null)
+      ];
+
+      // Sort by creation date (newest first)
+      allResults.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      return allResults;
+    } catch (error) {
+      throw new Error(`Failed to get user plan history: ${error.message}`);
+    }
+  }
 }
 module.exports = new QuitPlanService();
