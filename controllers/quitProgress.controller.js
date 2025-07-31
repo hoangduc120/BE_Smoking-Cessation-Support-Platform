@@ -1,7 +1,10 @@
 const quitProgressService = require("../services/quitProgress.service")
-const QuitPlanStage = require("../models/quitPlanStage.model")
-const QuitProgress = require("../models/quitProgress.model")
-
+const QuitPlan = require("../models/quitPlan.model");
+const QuitPlanStage = require("../models/quitPlanStage.model");
+const QuitProgress = require("../models/quitProgress.model");
+const UserBadge = require("../models/userBadge.model");
+const Badge = require("../models/badge.model");
+const { runManualFailedPlansCheck } = require("../cron/checkFailedPlans");
 
 class QuitProgressController {
     async createQuitProgress(req, res) {
@@ -251,10 +254,6 @@ class QuitProgressController {
             const userId = req.user._id;
             const { planId } = req.params;
 
-            const QuitPlan = require("../models/quitPlan.model");
-            const UserBadge = require("../models/userBadge.model");
-            const Badge = require("../models/badge.model");
-
             // Lấy thông tin plan
             const plan = await QuitPlan.findById(planId)
                 .populate('coachId', 'userName email')
@@ -369,6 +368,199 @@ class QuitProgressController {
             })
         } catch (error) {
             res.status(500).json({ message: error.message })
+        }
+    }
+
+    async testPlanFailureLogic(req, res) {
+        try {
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" })
+            }
+            const userId = req.user._id;
+            const { planId } = req.params;
+
+            console.log(`Testing plan failure logic for plan ${planId}, user ${userId}`);
+
+            const result = await quitProgressService.checkPlanForFailure(planId, userId);
+
+            res.json({
+                message: "Plan failure logic tested successfully",
+                data: {
+                    planId,
+                    userId,
+                    result,
+                    timestamp: new Date().toISOString()
+                }
+            });
+        } catch (error) {
+            res.status(500).json({ message: error.message })
+        }
+    }
+
+    async testFailedPlansCheck(req, res) {
+        try {
+            console.log(`Running manual failed plans check...`);
+            const success = await runManualFailedPlansCheck();
+
+            res.json({
+                message: success ? "Failed plans check completed successfully" : "Failed plans check completed with errors",
+                success,
+                timestamp: new Date().toISOString()
+            });
+        } catch (error) {
+            res.status(500).json({ message: error.message })
+        }
+    }
+
+    async debugPlanFailureRisk(req, res) {
+        try {
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" })
+            }
+            const userId = req.user._id;
+            const { planId } = req.params;
+
+            const plan = await QuitPlan.findById(planId);
+            if (!plan) {
+                return res.status(404).json({ message: "Plan not found" });
+            }
+
+            const stages = await QuitPlanStage.find({ quitPlanId: planId })
+                .sort({ order_index: 1 });
+
+            const currentDate = new Date();
+            const debugInfo = {
+                planInfo: {
+                    id: plan._id,
+                    title: plan.title,
+                    status: plan.status,
+                    startDate: plan.startDate,
+                    endDate: plan.endDate
+                },
+                currentDate: currentDate.toISOString(),
+                stagesAnalysis: []
+            };
+
+            for (const stage of stages) {
+                const checkInCount = await QuitProgress.countDocuments({
+                    userId,
+                    stageId: stage._id
+                });
+
+                const latestProgress = await QuitProgress.findOne({
+                    userId,
+                    stageId: stage._id
+                }).sort({ date: -1 });
+
+                const completionPercentage = (checkInCount / stage.duration) * 100;
+                const isStageExpired = stage.end_date && currentDate > new Date(stage.end_date);
+
+                let riskFactors = [];
+                let riskLevel = 'low';
+
+                // Phân tích risk factors
+                if (isStageExpired) {
+                    const daysPastExpiry = Math.floor((currentDate - new Date(stage.end_date)) / (1000 * 60 * 60 * 24));
+
+                    if (daysPastExpiry > 7 && completionPercentage < 75) {
+                        riskFactors.push(`CRITICAL: Stage expired ${daysPastExpiry} days ago with ${completionPercentage.toFixed(1)}% check-in`);
+                        riskLevel = 'critical';
+                    } else if (daysPastExpiry > 3 && completionPercentage < 50) {
+                        riskFactors.push(`HIGH: Stage expired ${daysPastExpiry} days ago with ${completionPercentage.toFixed(1)}% check-in`);
+                        riskLevel = 'high';
+                    } else if (daysPastExpiry > 0) {
+                        riskFactors.push(`MEDIUM: Stage expired ${daysPastExpiry} days ago`);
+                        if (riskLevel === 'low') riskLevel = 'medium';
+                    }
+                }
+
+                // Check cigarette target violations
+                if (latestProgress && stage.targetCigarettesPerDay !== undefined) {
+                    const last7DaysProgress = await QuitProgress.find({
+                        userId,
+                        stageId: stage._id,
+                        date: {
+                            $gte: new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000)
+                        }
+                    }).sort({ date: -1 });
+
+                    const exceededTargetDays = last7DaysProgress.filter(p =>
+                        p.cigarettesSmoked > stage.targetCigarettesPerDay
+                    ).length;
+
+                    if (exceededTargetDays > 5) {
+                        riskFactors.push(`CRITICAL: Exceeded cigarette target ${exceededTargetDays}/7 recent days`);
+                        riskLevel = 'critical';
+                    } else if (exceededTargetDays > 3) {
+                        riskFactors.push(`HIGH: Exceeded cigarette target ${exceededTargetDays}/7 recent days`);
+                        if (riskLevel !== 'critical') riskLevel = 'high';
+                    }
+                }
+
+                // Check progress gaps
+                if (latestProgress) {
+                    const daysSinceLastProgress = Math.floor((currentDate - new Date(latestProgress.date)) / (1000 * 60 * 60 * 24));
+
+                    if (daysSinceLastProgress > 10) {
+                        riskFactors.push(`CRITICAL: No progress for ${daysSinceLastProgress} days`);
+                        riskLevel = 'critical';
+                    } else if (daysSinceLastProgress > 5) {
+                        riskFactors.push(`HIGH: No progress for ${daysSinceLastProgress} days`);
+                        if (riskLevel !== 'critical') riskLevel = 'high';
+                    }
+                } else if (stage.start_date) {
+                    const daysSinceStageStart = Math.floor((currentDate - new Date(stage.start_date)) / (1000 * 60 * 60 * 24));
+                    if (daysSinceStageStart > 5) {
+                        riskFactors.push(`CRITICAL: No progress entries for ${daysSinceStageStart} days since stage start`);
+                        riskLevel = 'critical';
+                    }
+                }
+
+                debugInfo.stagesAnalysis.push({
+                    stage: {
+                        id: stage._id,
+                        name: stage.stage_name,
+                        order: stage.order_index,
+                        completed: stage.completed,
+                        duration: stage.duration,
+                        targetCigarettesPerDay: stage.targetCigarettesPerDay,
+                        startDate: stage.start_date,
+                        endDate: stage.end_date
+                    },
+                    metrics: {
+                        checkInCount,
+                        completionPercentage: completionPercentage.toFixed(1),
+                        isStageExpired,
+                        latestProgressDate: latestProgress?.date,
+                        latestCigarettesSmoked: latestProgress?.cigarettesSmoked
+                    },
+                    riskAssessment: {
+                        riskLevel,
+                        riskFactors,
+                        wouldFailPlan: riskLevel === 'critical'
+                    }
+                });
+            }
+
+            // Tổng hợp risk assessment
+            const overallRisk = debugInfo.stagesAnalysis.some(s => s.riskAssessment.riskLevel === 'critical') ? 'critical' :
+                debugInfo.stagesAnalysis.some(s => s.riskAssessment.riskLevel === 'high') ? 'high' :
+                    debugInfo.stagesAnalysis.some(s => s.riskAssessment.riskLevel === 'medium') ? 'medium' : 'low';
+
+            debugInfo.overallRiskAssessment = {
+                riskLevel: overallRisk,
+                wouldFailPlan: overallRisk === 'critical',
+                recommendation: overallRisk === 'critical' ? 'Plan should be failed' :
+                    overallRisk === 'high' ? 'Plan at high risk - needs intervention' :
+                        overallRisk === 'medium' ? 'Monitor closely' : 'Plan on track'
+            };
+
+            res.json({
+                message: "Plan failure risk analysis completed",
+                debug: debugInfo
+            });
+        } catch (error) {
+            res.status(500).json({ message: error.message });
         }
     }
 }

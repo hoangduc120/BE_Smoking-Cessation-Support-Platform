@@ -4,8 +4,6 @@ const QuitProgress = require("../models/quitProgress.model");
 const User = require("../models/user.models");
 const quitPlanService = require("./quitPlan.service");
 const sendMail = require("../utils/sendMail");
-
-
 class QuitProgressService {
     async createQuitProgress(quitProgressData) {
         const { userId, stageId, date, cigarettesSmoked, healthStatus, notes } = quitProgressData
@@ -127,10 +125,26 @@ class QuitProgressService {
         try {
             const ongoingPlans = await QuitPlan.find({ status: "ongoing" });
 
+            let processedCount = 0;
+            let failedPlanCount = 0;
+            let completedStageCount = 0;
+
             for (const plan of ongoingPlans) {
-                await this.checkPlanForFailure(plan._id, plan.userId);
+                try {
+                    const result = await this.checkPlanForFailure(plan._id, plan.userId);
+                    if (result.planFailed) {
+                        failedPlanCount++;
+                    }
+                    if (result.stagesCompleted > 0) {
+                        completedStageCount += result.stagesCompleted;
+                    }
+                    processedCount++;
+                } catch (error) {
+                    console.error(`Error checking plan ${plan._id}:`, error.message);
+                }
             }
         } catch (error) {
+            console.error('Error in checkFailedPlans:', error);
         }
     }
 
@@ -140,11 +154,16 @@ class QuitProgressService {
                 quitPlanId: planId
             }).sort({ order_index: 1 });
 
+            const currentDate = new Date();
+            let stagesCompleted = 0;
+            let planShouldFail = false;
+            let failReason = '';
+
+            // Kiểm tra từng stage
             for (const stage of stages) {
                 if (stage.completed) continue;
 
                 const totalDays = stage.duration;
-
                 const checkInCount = await QuitProgress.countDocuments({
                     userId,
                     stageId: stage._id
@@ -152,14 +171,104 @@ class QuitProgressService {
 
                 const completionPercentage = (checkInCount / totalDays) * 100;
 
-                if (completionPercentage >= 75) {
+                const latestProgress = await QuitProgress.findOne({
+                    userId,
+                    stageId: stage._id
+                }).sort({ date: -1 });
+
+                const isStageExpired = stage.end_date && currentDate > new Date(stage.end_date);
+
+                const meetsCheckInRequirement = completionPercentage >= 75;
+                let meetsCigaretteTarget = true;
+
+                if (stage.targetCigarettesPerDay !== undefined && latestProgress) {
+                    meetsCigaretteTarget = latestProgress.cigarettesSmoked <= stage.targetCigarettesPerDay;
+                }
+
+                if (meetsCheckInRequirement && meetsCigaretteTarget) {
                     await quitPlanService.completeStage(stage._id, userId);
+                    stagesCompleted++;
+                    continue;
+                }
+
+                if (isStageExpired) {
+                    const daysPastExpiry = Math.floor((currentDate - new Date(stage.end_date)) / (1000 * 60 * 60 * 24));
+
+                    // Fail nếu stage hết hạn > 3 ngày mà check-in < 50%
+                    if (daysPastExpiry > 3 && completionPercentage < 50) {
+                        planShouldFail = true;
+                        failReason = `Stage "${stage.stage_name}" expired ${daysPastExpiry} days ago with only ${completionPercentage.toFixed(1)}% check-in rate (minimum 50% required)`;
+                        break;
+                    }
+
+                    // Fail nếu stage hết hạn > 7 ngày mà check-in < 75%
+                    if (daysPastExpiry > 7 && completionPercentage < 75) {
+                        planShouldFail = true;
+                        failReason = `Stage "${stage.stage_name}" expired ${daysPastExpiry} days ago with only ${completionPercentage.toFixed(1)}% check-in rate (75% required for completion)`;
+                        break;
+                    }
+                }
+
+                // 2. Kiểm tra cigarette target failure
+                if (latestProgress && stage.targetCigarettesPerDay !== undefined) {
+                    // Đếm số ngày liên tiếp vượt target trong 7 ngày gần nhất
+                    const last7DaysProgress = await QuitProgress.find({
+                        userId,
+                        stageId: stage._id,
+                        date: {
+                            $gte: new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000)
+                        }
+                    }).sort({ date: -1 });
+
+                    const exceededTargetDays = last7DaysProgress.filter(p =>
+                        p.cigarettesSmoked > stage.targetCigarettesPerDay
+                    ).length;
+
+                    // Fail nếu vượt target > 5 ngày trong 7 ngày gần nhất
+                    if (exceededTargetDays > 5) {
+                        planShouldFail = true;
+                        failReason = `Exceeded cigarette target (${stage.targetCigarettesPerDay}/day) for ${exceededTargetDays} out of last 7 days in stage "${stage.stage_name}"`;
+                        break;
+                    }
+                }
+
+                // 3. Kiểm tra không có progress entry quá lâu
+                const lastProgressDate = latestProgress ? new Date(latestProgress.date) : null;
+                if (lastProgressDate) {
+                    const daysSinceLastProgress = Math.floor((currentDate - lastProgressDate) / (1000 * 60 * 60 * 24));
+
+                    // Fail nếu không có progress > 10 ngày
+                    if (daysSinceLastProgress > 10) {
+                        planShouldFail = true;
+                        failReason = `No progress updates for ${daysSinceLastProgress} days (maximum 10 days allowed without updates)`;
+                        break;
+                    }
+                } else {
+                    // Nếu stage đã bắt đầu > 5 ngày mà chưa có progress nào
+                    if (stage.start_date) {
+                        const daysSinceStageStart = Math.floor((currentDate - new Date(stage.start_date)) / (1000 * 60 * 60 * 24));
+                        if (daysSinceStageStart > 5) {
+                            planShouldFail = true;
+                            failReason = `No progress entries for ${daysSinceStageStart} days since stage "${stage.stage_name}" started`;
+                            break;
+                        }
+                    }
                 }
             }
 
-            return false;
+            // Thực hiện fail plan nếu cần
+            if (planShouldFail) {
+                await quitPlanService.failQuitPlan(planId, userId);
+                try {
+                    await this.sendPlanFailureNotification(userId, planId, failReason);
+                } catch (emailError) {
+                    console.error('Failed to send plan failure notification:', emailError.message);
+                }
+                return { planFailed: true, stagesCompleted, failReason };
+            }
+            return { planFailed: false, stagesCompleted };
         } catch (error) {
-            return false;
+            return { planFailed: false, stagesCompleted: 0 };
         }
     }
 
@@ -388,6 +497,90 @@ class QuitProgressService {
             });
         } catch (error) {
             console.error('Error sending reminder email:', error);
+        }
+    }
+
+    async sendPlanFailureNotification(userId, planId, failReason) {
+        try {
+            const user = await User.findById(userId);
+            const plan = await QuitPlan.findById(planId)
+                .populate('coachId', 'userName email');
+
+            if (!user || !user.email || !plan) {
+                console.log('Cannot send failure notification: missing user email or plan data');
+                return;
+            }
+
+            const emailHtml = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%); color: white; padding: 30px; border-radius: 10px; text-align: center;">
+                        <h1 style="margin: 0; font-size: 28px;">😔 Kế hoạch bỏ thuốc đã bị tạm dừng</h1>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; margin-top: 20px;">
+                        <h2 style="color: #333; margin-top: 0;">Xin chào ${user.userName}!</h2>
+                        
+                        <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                            Chúng tôi rất tiếc phải thông báo rằng kế hoạch bỏ thuốc "<strong>${plan.title}</strong>" của bạn đã bị tạm dừng do không đạt được các yêu cầu cần thiết.
+                        </p>
+
+                        <div style="background: #ffebee; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f44336;">
+                            <h3 style="color: #d32f2f; margin-top: 0;">📋 Lý do tạm dừng:</h3>
+                            <p style="color: #666; margin-bottom: 0; font-style: italic;">${failReason}</p>
+                        </div>
+
+                        <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <h3 style="color: #1976d2; margin-top: 0;">💪 Đừng nản chí!</h3>
+                            <p style="color: #666; margin-bottom: 10px;">Bỏ thuốc lá là một hành trình không dễ dàng. Việc này không có nghĩa là bạn đã thất bại hoàn toàn:</p>
+                            <ul style="color: #666; margin-bottom: 0;">
+                                <li>Bạn có thể bắt đầu lại với một kế hoạch mới</li>
+                                <li>Hãy xem xét lại các thói quen và điều chỉnh kế hoạch</li>
+                                <li>Tìm kiếm sự hỗ trợ từ coach hoặc cộng đồng</li>
+                                <li>Mỗi lần thử lại đều giúp bạn học hỏi và mạnh mẽ hơn</li>
+                            </ul>
+                        </div>
+
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="${process.env.FRONTEND_URL || 'https://smoking-cessation-support-platform-liart.vercel.app'}/quit-plans" 
+                               style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); 
+                                      color: white; 
+                                      padding: 15px 30px; 
+                                      text-decoration: none; 
+                                      border-radius: 25px; 
+                                      font-weight: bold; 
+                                      display: inline-block;
+                                      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);">
+                                🔄 Bắt đầu kế hoạch mới
+                            </a>
+                        </div>
+
+                        ${plan.coachId ? `
+                            <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                                <h4 style="color: #333; margin-top: 0;">👨‍⚕️ Liên hệ Coach:</h4>
+                                <p style="color: #666; margin-bottom: 0;">
+                                    Coach <strong>${plan.coachId.userName}</strong> sẵn sàng hỗ trợ bạn lên kế hoạch mới phù hợp hơn.
+                                    <br>Email: <a href="mailto:${plan.coachId.email}">${plan.coachId.email}</a>
+                                </p>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px; color: #888; font-size: 14px;">
+                        <p>Hãy nhớ rằng: "Thất bại là cơ hội để bắt đầu lại một cách thông minh hơn" 💪</p>
+                        <p>Đội ngũ hỗ trợ bỏ thuốc lá</p>
+                    </div>
+                </div>
+            `;
+
+            await sendMail({
+                email: user.email,
+                subject: "😔 Kế hoạch bỏ thuốc đã bị tạm dừng - Hãy bắt đầu lại!",
+                html: emailHtml
+            });
+
+            console.log(`✉️ Plan failure notification sent to ${user.email} for plan ${plan.title}`);
+        } catch (error) {
+            console.error('Error sending plan failure notification:', error);
         }
     }
 

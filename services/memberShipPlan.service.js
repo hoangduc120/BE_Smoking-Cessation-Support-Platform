@@ -108,11 +108,9 @@ class MemberShipPlanService {
                     isActive: true,
                     features: [
                         'basic_features',
-                        'unlimited_blog_posts',
                         'advanced_quit_plans',
                         'priority_support',
                         'custom_quit_plan',
-                        'analytics_dashboard',
                         'coach_interaction',
                         'community_access'
                     ],
