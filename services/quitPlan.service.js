@@ -4,7 +4,7 @@ const Badge = require('../models/badge.model');
 const QuitProgress = require('../models/quitProgress.model');
 const mongoose = require('mongoose');
 const CustomQuitPlan = require('../models/customQuitPlan.model');
-
+const UserBadge = require('../models/userBadge.model');
 
 class QuitPlanService {
   async createQuitPlan(data) {
@@ -553,7 +553,7 @@ class QuitPlanService {
       const totalStages = stages.length;
       const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
 
-      const UserBadge = require('../models/userBadge.model');
+
       const userBadgesForPlan = await UserBadge.find({})
         .populate('badgeId')
         .populate('userId', 'userName email')
@@ -577,6 +577,15 @@ class QuitPlanService {
           awardedAt: ub.awardedAt
         }));
 
+      let planStatus;
+      if (plan.status === 'completed') {
+        planStatus = true;
+      } else if (plan.status === 'failed') {
+        planStatus = 'fail';
+      } else {
+        planStatus = false;
+      }
+
       return {
         plan,
         stages,
@@ -584,7 +593,7 @@ class QuitPlanService {
         totalStages,
         completionPercentage: Math.round(completionPercentage),
         badges,
-        isCompleted: plan.status === 'completed'
+        isCompleted: planStatus
       };
     } catch (error) {
       throw new Error(`Failed to get plan completion details: ${error.message}`);
