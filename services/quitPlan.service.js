@@ -553,7 +553,6 @@ class QuitPlanService {
       const totalStages = stages.length;
       const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
 
-
       const userBadgesForPlan = await UserBadge.find({})
         .populate('badgeId')
         .populate('userId', 'userName email')
@@ -563,12 +562,10 @@ class QuitPlanService {
         .filter(ub => {
           if (!ub.badgeId) return false;
 
-          // Ưu tiên tìm badge theo templateId của plan trước (nếu có)
           if (plan.templateId) {
             return ub.badgeId.quitPlanId.toString() === plan.templateId.toString();
           }
 
-          // Nếu không có templateId thì tìm theo planId
           return ub.badgeId.quitPlanId.toString() === planId.toString();
         })
         .map(ub => ({
@@ -581,7 +578,6 @@ class QuitPlanService {
       for (const stage of stages) {
         if (stage.completed) continue;
 
-        // Tính tỉ lệ check-in
         const progressEntries = await QuitProgress.find({
           stageId: stage._id,
           userId: plan.userId
@@ -591,7 +587,6 @@ class QuitPlanService {
         const checkInCount = progressEntries.length;
         const completionPercentage = (checkInCount / totalDays) * 100;
 
-        // Kiểm tra số điếu thuốc ở entry mới nhất
         if (progressEntries.length > 0 && completionPercentage >= 75) {
           const latestProgress = progressEntries.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
 
@@ -605,12 +600,26 @@ class QuitPlanService {
       }
 
       let planStatus;
+      let shouldUpdatePlanStatus = false;
+
       if (plan.status === 'completed') {
         planStatus = true;
-      } else if (plan.status === 'failed' || hasStageExceedingCigaretteTarget) {
+      } else if (plan.status === 'failed') {
         planStatus = 'fail';
+      } else if (hasStageExceedingCigaretteTarget && plan.status === 'ongoing') {
+        planStatus = 'fail';
+        shouldUpdatePlanStatus = true;
       } else {
         planStatus = false;
+      }
+
+      if (shouldUpdatePlanStatus) {
+        await QuitPlan.findByIdAndUpdate(planId, {
+          status: 'failed',
+          failedAt: new Date()
+        });
+        plan.status = 'failed';
+        plan.failedAt = new Date();
       }
 
       return {
@@ -627,154 +636,44 @@ class QuitPlanService {
     }
   }
 
-  async getAllUserPlanHistory(userId) {
+  // Also add a method to automatically check and fail plans based on cigarette targets
+  async checkAndFailPlanIfNeeded(planId) {
     try {
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        throw new Error('Invalid user ID format');
-      }
+      const result = await this.getCompleteByPlanId(planId);
 
-      const plans = await QuitPlan.find({ userId })
-        .populate('coachId', 'userName email')
-        .populate('userId', 'userName email')
-        .sort({ createdAt: -1 });
-
-      const planHistory = await Promise.all(
-        plans.map(async (plan) => {
-          const stages = await QuitPlanStage.find({ quitPlanId: plan._id })
-            .sort({ order_index: 1 });
-
-          const completedStages = stages.filter(stage => stage.completed);
-          const totalStages = stages.length;
-          const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
-
-          const UserBadge = require('../models/userBadge.model');
-          const userBadges = await UserBadge.find({ userId })
-            .populate('badgeId')
-            .sort({ awardedAt: -1 });
-
-          const badges = userBadges
-            .filter(ub => {
-              if (!ub.badgeId) return false;
-
-              // Ưu tiên tìm badge theo templateId trước (nếu có)
-              if (plan.templateId) {
-                return ub.badgeId.quitPlanId.toString() === plan.templateId.toString();
-              }
-
-              // Nếu không có templateId thì tìm theo plan._id
-              return ub.badgeId.quitPlanId.toString() === plan._id.toString();
-            })
-            .map(ub => ub.badgeId);
-
-          return {
-            plan: plan.toObject(),
-            completedStages: completedStages.length,
-            totalStages,
-            completionPercentage: Math.round(completionPercentage),
-            badgeCount: badges.length,
-            badges,
-            duration: plan.endDate && plan.startDate ?
-              Math.ceil((plan.endDate - plan.startDate) / (1000 * 60 * 60 * 24)) : null
-          };
-        })
-      );
-
-      const summary = {
-        totalPlans: plans.length,
-        completedPlans: plans.filter(p => p.status === 'completed').length,
-        ongoingPlans: plans.filter(p => p.status === 'ongoing').length,
-        failedPlans: plans.filter(p => p.status === 'failed').length,
-        cancelledPlans: plans.filter(p => p.status === 'cancelled').length,
-        templatePlans: plans.filter(p => p.status === 'template').length,
-        totalBadges: planHistory.reduce((sum, plan) => sum + plan.badgeCount, 0)
-      };
-
+      // The getCompleteByPlanId method will automatically update the status if needed
       return {
-        planHistory,
-        summary
+        planFailed: result.isCompleted === 'fail' && result.plan.status === 'failed',
+        plan: result.plan
       };
     } catch (error) {
-      throw new Error(`Failed to get user plan history: ${error.message}`);
+      throw new Error(`Failed to check and fail plan: ${error.message}`);
     }
   }
 
-  // Thêm method để fix stage timing
-  async fixStageTiming(planId) {
+  async checkAndUpdateFailedPlans() {
     try {
-      const plan = await QuitPlan.findById(planId);
-      if (!plan || plan.status !== "ongoing") {
-        throw new Error('Plan not found or not ongoing');
-      }
+      const ongoingPlans = await QuitPlan.find({ status: 'ongoing' });
+      let updatedPlans = 0;
 
-      const stages = await QuitPlanStage.find({ quitPlanId: planId })
-        .sort({ order_index: 1 });
-
-      if (stages.length === 0) return;
-
-      // Fix timing theo ngày calendar
-      const startOfPlan = new Date(plan.startDate);
-      startOfPlan.setHours(0, 0, 0, 0);
-
-      let currentDayOffset = 0;
-
-      for (let i = 0; i < stages.length; i++) {
-        const stage = stages[i];
-
-        // Stage bắt đầu từ đầu ngày (0h00)
-        const stageStartDate = new Date(startOfPlan);
-        stageStartDate.setDate(startOfPlan.getDate() + currentDayOffset);
-
-        // Stage kết thúc vào cuối ngày (23h59:59.999)
-        const stageEndDate = new Date(stageStartDate);
-        stageEndDate.setDate(stageStartDate.getDate() + stage.duration - 1);
-        stageEndDate.setHours(23, 59, 59, 999);
-
-        await QuitPlanStage.findByIdAndUpdate(stage._id, {
-          start_date: stageStartDate,
-          end_date: stageEndDate
-        });
-
-        // Tăng offset cho stage tiếp theo
-        currentDayOffset += stage.duration;
-      }
-
-      console.log(`Fixed timing for plan ${planId} with ${stages.length} stages`);
-      return true;
-    } catch (error) {
-      console.error('Error fixing stage timing:', error);
-      throw error;
-    }
-  }
-
-  // Thêm method để kiểm tra và complete các stage đã hết hạn
-  async checkExpiredStages(planId, userId) {
-    try {
-      const quitProgressService = require('./quitProgress.service');
-
-      const stages = await QuitPlanStage.find({ quitPlanId: planId, completed: false })
-        .sort({ order_index: 1 });
-
-      const currentDate = new Date();
-      let hasChanges = false;
-
-      for (const stage of stages) {
-        if (stage.start_date && stage.end_date) {
-          const stageEndDate = new Date(stage.end_date);
-
-          // Kiểm tra nếu stage đã hết hạn
-          if (currentDate >= stageEndDate && !stage.completed) {
-            await quitProgressService.checkAndCompleteStage(stage._id, userId);
-            hasChanges = true;
+      for (const plan of ongoingPlans) {
+        try {
+          const result = await this.checkAndFailPlanIfNeeded(plan._id);
+          if (result.planFailed) {
+            updatedPlans++;
+            console.log(`Plan ${plan._id} marked as failed due to exceeding cigarette targets`);
           }
+        } catch (error) {
+          console.error(`Error checking plan ${plan._id}:`, error.message);
         }
       }
 
-      return hasChanges;
+      return { updatedPlans };
     } catch (error) {
-      console.error('Error checking expired stages:', error);
-      throw error;
+      throw new Error(`Failed to check and update failed plans: ${error.message}`);
     }
   }
+
   async createCustomQuitPlan(data) {
     try {
       const existingPlan = await QuitPlan.findOne({ userId: data.userId, status: "ongoing" })
