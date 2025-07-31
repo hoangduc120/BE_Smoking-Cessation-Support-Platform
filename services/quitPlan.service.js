@@ -870,16 +870,20 @@ class QuitPlanService {
     }
   }
 
-  async getAllUserPlanHistory(filters = {}) {
+  async getAllUserPlanHistory(userId, filters = {}) {
     try {
-      const query = {};
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
 
-      // Add filters
-      if (filters.userId) query.userId = filters.userId;
+      // Base query luôn filter theo userId
+      const query = { userId };
+
+      // Add additional filters if provided
       if (filters.coachId) query.coachId = filters.coachId;
       if (filters.status) query.status = filters.status;
 
-      // Get all quit plans (not just templates)
+      // Get all quit plans for this specific user (not just templates)
       const plans = await QuitPlan.find({
         ...query,
         status: { $in: ['completed', 'failed', 'cancelled', 'ongoing'] }
@@ -888,9 +892,11 @@ class QuitPlanService {
         .populate('coachId', 'userName email')
         .sort({ createdAt: -1 });
 
-      // Get approved custom requests with their associated quit plans
-      const customRequestsQuery = { status: 'approved' };
-      if (filters.userId) customRequestsQuery.userId = filters.userId;
+      // Get approved custom requests for this specific user
+      const customRequestsQuery = {
+        status: 'approved',
+        userId: userId // Luôn filter theo userId
+      };
       if (filters.coachId) customRequestsQuery.coachId = filters.coachId;
 
       const approvedCustomRequests = await CustomQuitPlan.find(customRequestsQuery)
@@ -915,6 +921,28 @@ class QuitPlanService {
           const totalStages = stages.length;
           const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
 
+          // Get badges for this plan
+          const userBadgesForPlan = await UserBadge.find({ userId })
+            .populate('badgeId')
+            .populate('userId', 'userName email')
+            .sort({ awardedAt: -1 });
+
+          const badges = userBadgesForPlan
+            .filter(ub => {
+              if (!ub.badgeId) return false;
+
+              if (plan.templateId) {
+                return ub.badgeId.quitPlanId.toString() === plan.templateId.toString();
+              }
+
+              return ub.badgeId.quitPlanId.toString() === plan._id.toString();
+            })
+            .map(ub => ({
+              ...ub.badgeId.toObject(),
+              userId: ub.userId,
+              awardedAt: ub.awardedAt
+            }));
+
           return {
             type: 'regular',
             quitPlan: plan,
@@ -925,6 +953,7 @@ class QuitPlanService {
               completionPercentage: Math.round(completionPercentage),
               isCompleted: plan.status === 'completed'
             },
+            badges: badges,
             user: plan.userId,
             coach: plan.coachId,
             createdAt: plan.createdAt,
@@ -945,6 +974,23 @@ class QuitPlanService {
             const totalStages = stages.length;
             const completionPercentage = totalStages > 0 ? (completedStages.length / totalStages) * 100 : 0;
 
+            // Get badges for this custom plan
+            const userBadgesForPlan = await UserBadge.find({ userId })
+              .populate('badgeId')
+              .populate('userId', 'userName email')
+              .sort({ awardedAt: -1 });
+
+            const badges = userBadgesForPlan
+              .filter(ub => {
+                if (!ub.badgeId) return false;
+                return ub.badgeId.quitPlanId.toString() === request.quitPlanId._id.toString();
+              })
+              .map(ub => ({
+                ...ub.badgeId.toObject(),
+                userId: ub.userId,
+                awardedAt: ub.awardedAt
+              }));
+
             return {
               type: 'custom',
               customRequest: {
@@ -964,6 +1010,7 @@ class QuitPlanService {
                 completionPercentage: Math.round(completionPercentage),
                 isCompleted: request.quitPlanId.status === 'completed'
               },
+              badges: badges,
               user: request.userId,
               coach: request.coachId,
               createdAt: request.createdAt,
@@ -984,7 +1031,23 @@ class QuitPlanService {
       // Sort by creation date (newest first)
       allResults.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      return allResults;
+      // Generate summary statistics
+      const summary = {
+        totalPlans: allResults.length,
+        completedPlans: allResults.filter(item => item.progress.isCompleted).length,
+        failedPlans: allResults.filter(item => item.quitPlan.status === 'failed').length,
+        cancelledPlans: allResults.filter(item => item.quitPlan.status === 'cancelled').length,
+        ongoingPlans: allResults.filter(item => item.quitPlan.status === 'ongoing').length,
+        totalBadges: allResults.reduce((sum, item) => sum + (item.badges?.length || 0), 0),
+        averageCompletionRate: allResults.length > 0 ?
+          Math.round(allResults.reduce((sum, item) => sum + item.progress.completionPercentage, 0) / allResults.length) : 0
+      };
+
+      return {
+        planHistory: allResults,
+        summary,
+        user: allResults.length > 0 ? allResults[0].user : null
+      };
     } catch (error) {
       throw new Error(`Failed to get user plan history: ${error.message}`);
     }

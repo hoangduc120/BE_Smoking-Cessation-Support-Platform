@@ -3703,15 +3703,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  # Tìm và thay thế endpoint này trong swagger.yaml
   /plans/quitplans/history:
     get:
       tags:
         - QuitPlan
       summary: Get user plan history
-      description: Retrieves all plan history for the authenticated user, including completion statistics and badges.
+      description: |
+        Retrieves all plan history for the authenticated user, including regular quit plans and approved custom quit plans.
+        Shows completion statistics, badges earned, and comprehensive summary information for the user's smoking cessation journey.
+        
+        **Response includes:**
+        - Regular quit plans (from templates)
+        - Approved custom quit plans
+        - Stage completion progress
+        - Badges earned for each plan
+        - Summary statistics (total plans, completion rates, etc.)
+        
+        **Plans are sorted by creation date (newest first)**
       operationId: getAllUserPlanHistory
       security:
         - BearerAuth: []
+      parameters:
+        - name: coachId
+          in: query
+          description: Optional filter by coach ID to see plans from specific coach only
+          schema:
+            type: string
+            example: '67890'
+        - name: status
+          in: query
+          description: Optional filter by plan status
+          schema:
+            type: string
+            enum: ['completed', 'failed', 'cancelled', 'ongoing']
+            example: 'completed'
       responses:
         '200':
           description: User plan history retrieved successfully
@@ -3725,62 +3751,115 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: 'User plan history fetched successfully'
+                    example: "User plan history retrieved successfully"
                   data:
                     $ref: '#/components/schemas/UserPlanHistoryResponse'
+              example:
+                success: true
+                message: "User plan history retrieved successfully"
+                data:
+                  planHistory:
+                    - type: "regular"
+                      quitPlan:
+                        _id: "plan-123"
+                        title: "Kế hoạch cai thuốc 30 ngày"
+                        status: "completed"
+                        startDate: "2025-01-01T00:00:00.000Z"
+                        endDate: "2025-01-31T23:59:59.999Z"
+                        templateId: "template-456"
+                        coachId:
+                          _id: "coach-789"
+                          userName: "Coach John"
+                          email: "coach@example.com"
+                      stages:
+                        - _id: "stage-1"
+                          stage_name: "Week 1: Giảm xuống 15 điếu"
+                          completed: true
+                          duration: 7
+                      progress:
+                        completedStages: 4
+                        totalStages: 4
+                        completionPercentage: 100
+                        isCompleted: true
+                      badges:
+                        - _id: "badge-1"
+                          name: "Plan Completed"
+                          description: "Hoàn thành kế hoạch cai thuốc"
+                          awardedAt: "2025-01-31T10:00:00.000Z"
+                      user:
+                        _id: "user-123"
+                        userName: "john_doe"
+                        email: "john@example.com"
+                      coach:
+                        _id: "coach-789"
+                        userName: "Coach John"
+                        email: "coach@example.com"
+                      createdAt: "2025-01-01T00:00:00.000Z"
+                      startDate: "2025-01-01T00:00:00.000Z"
+                      endDate: "2025-01-31T23:59:59.999Z"
+                    - type: "custom"
+                      customRequest:
+                        _id: "custom-req-456"
+                        title: "Kế hoạch cá nhân: Ca đêm"
+                        description: "Kế hoạch phù hợp với ca đêm"
+                        rules:
+                          - rule: "Giảm dần từ 20→10→0"
+                            description: "Giảm từ từ theo lịch ca đêm"
+                        status: "approved"
+                        approvedAt: "2024-12-15T10:00:00.000Z"
+                        createdAt: "2024-12-14T09:00:00.000Z"
+                      quitPlan:
+                        _id: "plan-789"
+                        title: "Custom: Ca đêm 20→0 điếu"
+                        status: "failed"
+                        startDate: "2024-12-16T00:00:00.000Z"
+                        endDate: "2025-01-15T23:59:59.999Z"
+                      stages:
+                        - _id: "stage-c1"
+                          stage_name: "Giai đoạn 1: 20→10 điếu"
+                          completed: true
+                          duration: 14
+                        - _id: "stage-c2"
+                          stage_name: "Giai đoạn 2: 10→0 điếu"
+                          completed: false
+                          duration: 16
+                      progress:
+                        completedStages: 1
+                        totalStages: 2
+                        completionPercentage: 50
+                        isCompleted: false
+                      badges: []
+                      user:
+                        _id: "user-123"
+                        userName: "john_doe"
+                        email: "john@example.com"
+                      coach:
+                        _id: "coach-789"
+                        userName: "Coach John"
+                        email: "coach@example.com"
+                      createdAt: "2024-12-14T09:00:00.000Z"
+                      startDate: "2024-12-16T00:00:00.000Z"
+                      endDate: "2025-01-15T23:59:59.999Z"
+                  summary:
+                    totalPlans: 2
+                    completedPlans: 1
+                    failedPlans: 1
+                    cancelledPlans: 0
+                    ongoingPlans: 0
+                    totalBadges: 1
+                    averageCompletionRate: 75
+                  user:
+                    _id: "user-123"
+                    userName: "john_doe"
+                    email: "john@example.com"
         '401':
           description: Unauthorized - Invalid or missing authentication token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /plans/quitplans/{planId}/completion:
-    get:
-      tags:
-        - QuitPlan
-      summary: Get plan completion details
-      description: Retrieves detailed completion information for a specific quit plan, including stages, progress, and badges.
-      operationId: getCompleteByPlanId
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: planId
-          in: path
-          required: true
-          description: ID of the quit plan to get completion details for
-          schema:
-            type: string
-            example: '12345'
-      responses:
-        '200':
-          description: Plan completion details retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: 'Plan completion details fetched successfully'
-                  data:
-                    $ref: '#/components/schemas/PlanCompletionResponse'
-        '401':
-          description: Unauthorized - Invalid or missing authentication token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Plan not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '400':
-          description: Invalid plan ID format
+          description: Invalid filter parameters
           content:
             application/json:
               schema:
@@ -8051,74 +8130,208 @@ components:
         - recentFailures
         - systemHealth
                  - lastCheckedAt
+   # Cập nhật schema trong components/schemas
     UserPlanHistoryResponse:
       type: object
       properties:
         planHistory:
           type: array
           items:
-            $ref: '#/components/schemas/PlanHistoryItem'
-          description: List of user's quit plans with completion details
+            $ref: '#/components/schemas/PlanHistoryItemNew'
+          description: List of user's quit plans (both regular and custom) with completion details, sorted by creation date (newest first)
         summary:
-          $ref: '#/components/schemas/PlanHistorySummary'
+          $ref: '#/components/schemas/PlanHistorySummaryNew'
           description: Summary statistics of user's plan history
+        user:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+              example: 'user-123'
+            userName:
+              type: string
+              example: 'john_doe'
+            email:
+              type: string
+              example: 'john@example.com'
+          description: User information (null if no plans exist)
       required:
         - planHistory
         - summary
-    PlanHistoryItem:
+        - user
+
+    PlanHistoryItemNew:
       type: object
       properties:
-        plan:
+        type:
+          type: string
+          enum: ['regular', 'custom']
+          example: 'regular'
+          description: Type of plan (regular from template or custom approved plan)
+        customRequest:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+              example: 'custom-req-456'
+            title:
+              type: string
+              example: 'Kế hoạch cá nhân: Ca đêm'
+            description:
+              type: string
+              example: 'Kế hoạch phù hợp với ca đêm'
+            rules:
+              type: array
+              items:
+                type: object
+                properties:
+                  rule:
+                    type: string
+                  description:
+                    type: string
+            status:
+              type: string
+              enum: ['approved']
+              example: 'approved'
+            approvedAt:
+              type: string
+              format: date-time
+              example: '2024-12-15T10:00:00.000Z'
+            createdAt:
+              type: string
+              format: date-time
+              example: '2024-12-14T09:00:00.000Z'
+          description: Custom request information (only present for type = 'custom')
+        quitPlan:
           $ref: '#/components/schemas/QuitPlan'
           description: The quit plan details
-        completedStages:
-          type: integer
-          example: 3
-          description: Number of completed stages
-        totalStages:
-          type: integer
-          example: 5
-          description: Total number of stages in the plan
-        completionPercentage:
-          type: integer
-          example: 60
-          description: Completion percentage (0-100)
-        badgeCount:
-          type: integer
-          example: 2
-          description: Number of badges earned for this plan
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuitPlanStage'
+          description: List of all stages in the plan with completion status
+        progress:
+          type: object
+          properties:
+            completedStages:
+              type: integer
+              example: 3
+              description: Number of completed stages
+            totalStages:
+              type: integer
+              example: 5
+              description: Total number of stages in the plan
+            completionPercentage:
+              type: integer
+              example: 60
+              description: Completion percentage (0-100)
+            isCompleted:
+              type: boolean
+              example: false
+              description: Whether the entire plan has been completed
+          required:
+            - completedStages
+            - totalStages
+            - completionPercentage
+            - isCompleted
+          description: Progress statistics for this plan
         badges:
           type: array
           items:
-            $ref: '#/components/schemas/Badge'
+            type: object
+            properties:
+              _id:
+                type: string
+                example: 'badge-123'
+              name:
+                type: string
+                example: 'Plan Completed'
+              description:
+                type: string
+                example: 'Hoàn thành kế hoạch cai thuốc'
+              userId:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  userName:
+                    type: string
+                  email:
+                    type: string
+              awardedAt:
+                type: string
+                format: date-time
+                example: '2025-01-31T10:00:00.000Z'
           description: List of badges earned for this plan
-        duration:
-          type: integer
+        user:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 'user-123'
+            userName:
+              type: string
+              example: 'john_doe'
+            email:
+              type: string
+              example: 'john@example.com'
+          description: User who participated in this plan
+        coach:
+          type: object
           nullable: true
-          example: 30
-          description: Duration of the plan in days
+          properties:
+            _id:
+              type: string
+              example: 'coach-789'
+            userName:
+              type: string
+              example: 'Coach John'
+            email:
+              type: string
+              example: 'coach@example.com'
+          description: Coach who created/approved this plan
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-01-01T00:00:00.000Z'
+          description: When the plan/request was created
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2025-01-01T00:00:00.000Z'
+          description: When the plan started execution
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2025-01-31T23:59:59.999Z'
+          description: When the plan ended/will end
       required:
-        - plan
-        - completedStages
-        - totalStages
-        - completionPercentage
-        - badgeCount
+        - type
+        - quitPlan
+        - stages
+        - progress
         - badges
-    PlanHistorySummary:
+        - user
+        - coach
+        - createdAt
+        - startDate
+        - endDate
+
+    PlanHistorySummaryNew:
       type: object
       properties:
         totalPlans:
           type: integer
           example: 5
-          description: Total number of plans user has participated in
+          description: Total number of plans user has participated in (both regular and custom)
         completedPlans:
           type: integer
           example: 2
           description: Number of completed plans
-        ongoingPlans:
-          type: integer
-          example: 1
-          description: Number of currently ongoing plans
         failedPlans:
           type: integer
           example: 2
@@ -8127,93 +8340,26 @@ components:
           type: integer
           example: 1
           description: Number of cancelled plans
-        templatePlans:
+        ongoingPlans:
           type: integer
-          example: 0
-          description: Number of template plans (should be 0 for users)
+          example: 1
+          description: Number of currently ongoing plans
         totalBadges:
           type: integer
           example: 8
           description: Total number of badges earned across all plans
+        averageCompletionRate:
+          type: integer
+          example: 76
+          description: Average completion percentage across all plans (0-100)
       required:
         - totalPlans
         - completedPlans
-        - ongoingPlans
         - failedPlans
         - cancelledPlans
-        - templatePlans
+        - ongoingPlans
         - totalBadges
-    PlanCompletionResponse:
-      type: object
-      properties:
-        plan:
-          $ref: '#/components/schemas/QuitPlan'
-          description: The quit plan details
-        stages:
-          type: array
-          items:
-            $ref: '#/components/schemas/QuitPlanStage'
-          description: List of all stages in the plan
-        completedStages:
-          type: integer
-          example: 3
-          description: Number of completed stages
-        totalStages:
-          type: integer
-          example: 5
-          description: Total number of stages in the plan
-        completionPercentage:
-          type: integer
-          example: 60
-          description: Completion percentage (0-100)
-        badges:
-          type: array
-          items:
-            $ref: '#/components/schemas/Badge'
-          description: List of badges earned for this plan
-        isCompleted:
-          type: boolean
-          example: false
-          description: Whether the entire plan has been completed
-      required:
-        - plan
-        - stages
-        - completedStages
-        - totalStages
-        - completionPercentage
-        - badges
-        - isCompleted
-    UserBadgeResponse:
-      type: object
-      properties:
-        _id:
-          type: string
-          example: 'userbadge-12345'
-        badgeId:
-          type: string
-          example: 'badge-12345'
-        name:
-          type: string
-          example: 'Plan Completed'
-        description:
-          type: string
-          example: 'Hoàn thành kế hoạch cai thuốc: Kế hoạch 30 ngày'
-        icon_url:
-          type: string
-          nullable: true
-          example: '/badges/plan-completed.png'
-        awardedAt:
-          type: string
-          format: date-time
-          example: '2025-01-21T10:30:00.000Z'
-        quitPlanId:
-          type: string
-          example: 'plan-12345'
-      required:
-        - _id
-        - badgeId
-        - name
-        - awardedAt
+        - averageCompletionRate
     BadgeCreateForPlanRequest:
       type: object
       description: |
