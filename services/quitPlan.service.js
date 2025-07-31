@@ -577,10 +577,37 @@ class QuitPlanService {
           awardedAt: ub.awardedAt
         }));
 
+      let hasStageExceedingCigaretteTarget = false;
+      for (const stage of stages) {
+        if (stage.completed) continue;
+
+        // Tính tỉ lệ check-in
+        const progressEntries = await QuitProgress.find({
+          stageId: stage._id,
+          userId: plan.userId
+        });
+
+        const totalDays = stage.duration;
+        const checkInCount = progressEntries.length;
+        const completionPercentage = (checkInCount / totalDays) * 100;
+
+        // Kiểm tra số điếu thuốc ở entry mới nhất
+        if (progressEntries.length > 0 && completionPercentage >= 75) {
+          const latestProgress = progressEntries.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+          if (stage.targetCigarettesPerDay !== undefined &&
+            latestProgress &&
+            latestProgress.cigarettesSmoked > stage.targetCigarettesPerDay) {
+            hasStageExceedingCigaretteTarget = true;
+            break;
+          }
+        }
+      }
+
       let planStatus;
       if (plan.status === 'completed') {
         planStatus = true;
-      } else if (plan.status === 'failed') {
+      } else if (plan.status === 'failed' || hasStageExceedingCigaretteTarget) {
         planStatus = 'fail';
       } else {
         planStatus = false;

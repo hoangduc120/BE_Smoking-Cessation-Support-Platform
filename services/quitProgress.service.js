@@ -185,6 +185,13 @@ class QuitProgressService {
                     meetsCigaretteTarget = latestProgress.cigarettesSmoked <= stage.targetCigarettesPerDay;
                 }
 
+                // Kiểm tra nếu đủ check-in nhưng vượt quá số điếu thuốc cho phép, đánh dấu plan là fail
+                if (meetsCheckInRequirement && !meetsCigaretteTarget) {
+                    planShouldFail = true;
+                    failReason = `Stage "${stage.stage_name}" has enough check-ins (${completionPercentage.toFixed(1)}%) but cigarettes smoked (${latestProgress?.cigarettesSmoked || 0}) exceeds target (${stage.targetCigarettesPerDay})`;
+                    break;
+                }
+git 
                 if (meetsCheckInRequirement && meetsCigaretteTarget) {
                     await quitPlanService.completeStage(stage._id, userId);
                     stagesCompleted++;
